@@ -340,7 +340,7 @@ static void services_init(void)
     memset(&dis_init, 0, sizeof(dis_init));
 
     ble_srv_ascii_to_utf8(&dis_init.manufact_name_str, (char *)"SITF");
-    ble_srv_ascii_to_utf8(&dis_init.model_num_str, (char *)"PowerKeith");
+    ble_srv_ascii_to_utf8(&dis_init.model_num_str, (char *)"StarTracker52");
     ble_srv_ascii_to_utf8(&dis_init.serial_num_str, (char *)"0000");
     ble_srv_ascii_to_utf8(&dis_init.sw_rev_str, (char *)"0.0.1");
 
@@ -649,13 +649,13 @@ static void advertising_init(void)
     memset(&init, 0, sizeof(init));
     memset(&manuf_data, 0, sizeof(manuf_data));
 
-//    static ble_uuid_t m_adv_uuids[1];
-//
-//    m_adv_uuids[0].uuid = BLE_CPS__BLE_UUID;
-//    m_adv_uuids[0].type = BLE_UUID_TYPE_BLE;
-//
-//    init.srdata.uuids_complete.uuid_cnt = sizeof(m_adv_uuids) / sizeof(m_adv_uuids[0]);
-//    init.srdata.uuids_complete.p_uuids  = m_adv_uuids;
+    static ble_uuid_t m_adv_uuids[1];
+
+    m_adv_uuids[0].uuid = BLE_UUID_NUS_SERVICE;
+    m_adv_uuids[0].type = BLE_UUID_TYPE_VENDOR_BEGIN;
+
+    init.srdata.uuids_complete.uuid_cnt = sizeof(m_adv_uuids) / sizeof(m_adv_uuids[0]);
+    init.srdata.uuids_complete.p_uuids  = m_adv_uuids;
 
     init.advdata.name_type          = BLE_ADVDATA_FULL_NAME;
     init.advdata.include_appearance = true;
@@ -720,8 +720,10 @@ static void ble_stack_init(void)
     NRF_LOG_WARNING("RAM REQ: 0x%lX", ram_start);
 
     // Initialize the async SVCI interface to bootloader before any interrupts are enabled.
+#if 0
     err_code = ble_dfu_buttonless_async_svci_init();
     APP_ERROR_CHECK(err_code);
+#endif
 }
 
 
