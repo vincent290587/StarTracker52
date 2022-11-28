@@ -11,6 +11,7 @@
 #include "segger_wrapper.h"
 #include "task_manager_wrapper.h"
 #include "custom_board.h"
+#include "millis.h"
 
 #define USE_TIMER 1
 
@@ -38,21 +39,19 @@ extern U32 SystemCoreClock;
 #define RADS_PER_SEC 7.292115e-05f
 
 #define LENGTH_M 0.28884f // fill in with precise measured value
-// For theta zero, I used relative measurement between two boards w/ level.
-// Got 0.72 degrees, which is 0.012566 radians
+#define ELE_PER_TURN (0.0005f) // fill in with precise measured value: elevation per full thread rotation
 
 // 4096 steps per rotation
 // 0.5mm per rotation,
 // radians per motor rotation = 0.5mm / (2*Pi*r) = 2.6523e-4
-#define RADIANS_PER_ROT (0.0005f / (2*M_PI*LENGTH_M))
-//
-// in one second must do RADS_PER_SEC :
-//
+#define RADIANS_PER_ROT (ELE_PER_TURN / (2*M_PI*LENGTH_M))
+
 #define PULSE_PER_SEC   (4096u * RADS_PER_SEC / RADIANS_PER_ROT) /* About 1125 pulse per second */
-#define USEC_PER_PULSE  (1000000u * RADIANS_PER_ROT / (RADS_PER_SEC * 4096u)) /* About 1125 pulse per second */
+#define USEC_PER_PULSE  (1000000uL * RADIANS_PER_ROT / (RADS_PER_SEC * 4096u)) /* pulse period in usec */
+#define CNT_PER_PULSE   (64000000uL * RADIANS_PER_ROT / (RADS_PER_SEC * 4096u)) /* pulse period in counts */
 
 // from manufacturers datasheet
-static const bool m_stepper_sequence[NUM_STEPS] = {0x01, 0x03, 0x02, 0x06, 0x04, 0x0C, 0x08, 0x09};
+static const U8 m_stepper_sequence[NUM_STEPS] = {0x01, 0x03, 0x02, 0x06, 0x04, 0x0C, 0x08, 0x09};
 
 static volatile U32 m_total_steps = 0;
 static volatile U8 m_stepper_index = 0;
@@ -66,6 +65,8 @@ static inline void _increment(void) {
 
     m_stepper_index = (++m_stepper_index) & 0b0111;
     m_total_steps++;
+
+    //NRF_LOG_INFO("Increment %u", m_stepper_index);
 }
 
 /**
@@ -76,7 +77,9 @@ static void timer_event_handler(nrf_timer_event_t event_type,
 {
     W_SYSVIEW_RecordEnterISR();
 
-    _increment();
+    if (NRF_TIMER_EVENT_COMPARE0 == event_type) {
+        _increment();
+    }
 
     W_SYSVIEW_RecordExitISR();
 }
@@ -100,7 +103,7 @@ void uln2003__init(void) {
 //    err_code = app_timer_start(m_job_timer, APP_TIMER_TICKS(1000), NULL);
 //    APP_ERROR_CHECK(err_code);
 
-    static const nrf_drv_timer_t TIMER_LED = NRF_DRV_TIMER_INSTANCE(0);
+    static const nrf_drv_timer_t TIMER_LED = NRF_DRV_TIMER_INSTANCE(1);
 
     uint32_t time_ticks;
     //Configure TIMER_LED for generating simple light effect - leds on board will invert his state one after the other.
@@ -131,10 +134,29 @@ void uln2003__service(void) {
 
 #if USE_TIMER==0
 
-    static volatile U32 m_commanded_steps = 0;
+    if (millis() < 3000) {
+        return;
+    }
 
+    static U32 m_commanded_steps = 0;
+    static U32 m_start_cnt = 0;
 
+    if (!m_start_cnt) {
+        m_start_cnt = GET_TIMESTAMP();
+    }
 
+    U32 diff_cnt = (GET_TIMESTAMP() - m_start_cnt);
+    U32 th_steps = diff_cnt / CNT_PER_PULSE;
+
+    if (th_steps > m_total_steps) {
+        m_commanded_steps = th_steps - m_total_steps;
+    } else {
+        m_commanded_steps = 0;
+    }
+
+    if (m_commanded_steps) {
+        _increment();
+    }
 #endif
 
 }
