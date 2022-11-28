@@ -49,10 +49,9 @@
 #define BSP_SELF_PINRESET_PIN NRF_GPIO_PIN_MAP(0,19)
 
 
-#define RX_PIN_NUMBER           NRF_GPIO_PIN_MAP(0, 8)
-#define TX_PIN_NUMBER           NRF_GPIO_PIN_MAP(0, 6)
-#define CTS_PIN_NUMBER          0xFF
-#define RTS_PIN_NUMBER          0xFF
-#define HWFC                    false
+#define ULN_PINA        NRF_GPIO_PIN_MAP(0,6)
+#define ULN_PINB        NRF_GPIO_PIN_MAP(0,7)
+#define ULN_PINC        NRF_GPIO_PIN_MAP(0,8)
+#define ULN_PIND        NRF_GPIO_PIN_MAP(0,9)
 
 #endif /* CUSTOM_BOARD_H_ */

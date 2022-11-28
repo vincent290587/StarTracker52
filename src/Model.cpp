@@ -14,6 +14,8 @@
 
 #if defined (BLE_STACK_SUPPORT_REQD)
 #include "app_ble_peripheral.h"
+#include "uln2003.h"
+
 #endif
 
 #ifdef ANT_STACK_SUPPORT_REQD
@@ -63,6 +65,8 @@ void sensors_task(void * p_context) {
 void idle_task(void * p_context)
 {
 
+    uln2003__init();
+
     for(;;)
     {
     	// BSP tasks
@@ -71,12 +75,14 @@ void idle_task(void * p_context)
     	NRF_LOG_FLUSH();
 
     	//No more logs to process, go to sleep
-    	W_SYSVIEW_OnIdle();
-    	pwr_mgmt_run();
+//    	W_SYSVIEW_OnIdle();
+//    	pwr_mgmt_run();
 
 #if APP_SCHEDULER_ENABLED
     	app_sched_execute();
 #endif
+
+        uln2003__service();
 
     	task_yield();
     }
