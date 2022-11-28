@@ -8,6 +8,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
+#include <nrf_drv_power.h>
 
 #include "hardfault.h"
 #include "helper.h"
@@ -271,10 +272,7 @@ void _bsp_event_callback(bsp_event_t evt) {
 
 }
 
-/**@brief Function for initializing buttons and LEDs.
- *
- * @param[out] p_erase_bonds  True if the clear bonds button was pressed to wake the application up.
- */
+/**@brief Function for initializing buttons and LEDs. */
 static void leds_init(void) {
     uint32_t err_code = bsp_init(BSP_INIT_LEDS | BSP_INIT_BUTTONS, _bsp_event_callback);
     APP_ERROR_CHECK(err_code);
@@ -313,7 +311,7 @@ static void sdh_init(void) {
 
     ASSERT(nrf_sdh_is_enabled());
 
-    sd_power_dcdc_mode_set(NRF_POWER_DCDC_ENABLE);
+    //sd_power_dcdc_mode_set(NRF_POWER_DCDC_ENABLE);
 
 }
 
@@ -354,6 +352,15 @@ int main(void) {
     pins_init();
 
     LOG_INFO("Init start");
+
+    {
+        nrf_drv_power_config_t pPower = {
+                .dcdcen = false,
+                .dcdcenhv = false,
+        };
+        err_code = nrf_drv_power_init(&pPower);
+        APP_ERROR_CHECK(err_code);
+    }
 
     err_code = nrf_pwr_mgmt_init();
     APP_ERROR_CHECK(err_code);

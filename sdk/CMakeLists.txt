@@ -39,6 +39,7 @@ set(SDK_INCLUDES
         ${SDK_ROOT}/components/libraries/atomic_flags
         ${SDK_ROOT}/components/libraries/fstorage
         ${SDK_ROOT}/components/boards
+        ${SDK_ROOT}/components/libraries/spi_mngr
         ${SDK_ROOT}/components/libraries/twi_mngr
         ${SDK_ROOT}/components/libraries/memobj
         ${SDK_ROOT}/components/libraries/mpu
@@ -102,8 +103,9 @@ set(SDK_INCLUDES
         ${SDK_ROOT}/external/segger_rtt
         ${SDK_ROOT}/components/ble/ble_link_ctx_manager
         ${SDK_ROOT}/components/ble/peer_manager
-        ${SDK_ROOT}/components/softdevice/ANT_s332_nrf52_7.0.1/ANT_s332_nrf52_7.0.1.API/include
-        ${SDK_ROOT}/components/softdevice/ANT_s332_nrf52_7.0.1/ANT_s332_nrf52_7.0.1.API/include/nrf52
+
+        ${SDK_ROOT}/components/softdevice/ANT_s340_nrf52_7.0.1/ANT_s340_nrf52_7.0.1.API/include
+        ${SDK_ROOT}/components/softdevice/ANT_s340_nrf52_7.0.1/ANT_s340_nrf52_7.0.1.API/include/nrf52
         ${SDK_ROOT}/components/libraries/usbd
         ${SDK_ROOT}/components/libraries/svc
         ${SDK_ROOT}/components/libraries/usbd/class/cdc/acm
@@ -112,24 +114,6 @@ set(SDK_INCLUDES
         ${SDK_ROOT}/components/libraries/bootloader/ble_dfu
         ${SDK_ROOT}/components/ble/ble_services/ble_dfu
         )
-
-if (USE_SOFTDEVICE)
-
-    set(SD_SRCS
-            ${SDK_ROOT}/components/libraries/fstorage/nrf_fstorage_sd.c
-            ${SDK_ROOT}/components/softdevice/common/nrf_sdh.c
-            ${SDK_ROOT}/components/softdevice/common/nrf_sdh_ant.c
-            ${SDK_ROOT}/components/softdevice/common/nrf_sdh_ble.c
-            ${SDK_ROOT}/components/softdevice/common/nrf_sdh_soc.c
-            )
-
-else(USE_SOFTDEVICE)
-
-    set(SD_SRCS
-            ${SDK_ROOT}/components/libraries/fstorage/nrf_fstorage_nvmc.c
-            )
-
-endif(USE_SOFTDEVICE)
 
 set(SDK_SRCS
         ${SDK_ROOT}/components/libraries/bsp/bsp.c
@@ -162,7 +146,6 @@ set(SDK_SRCS
         ${SDK_ROOT}/external/fprintf/nrf_fprintf.c
         ${SDK_ROOT}/external/fprintf/nrf_fprintf_format.c
         ${SDK_ROOT}/external/fatfs/src/ff.c
-        ${SDK_ROOT}/external/fatfs/port/diskio_blkdev.c
         ${SDK_ROOT}/components/libraries/memobj/nrf_memobj.c
         ${SDK_ROOT}/components/libraries/mpu/nrf_mpu_lib.c
         ${SDK_ROOT}/components/libraries/pwr_mgmt/nrf_pwr_mgmt.c
@@ -177,7 +160,6 @@ set(SDK_SRCS
         ${SDK_ROOT}/modules/nrfx/hal/nrf_nvmc.c
         ${SDK_ROOT}/integration/nrfx/legacy/nrf_drv_spi.c
         ${SDK_ROOT}/integration/nrfx/legacy/nrf_drv_twi.c
-        ${SDK_ROOT}/integration/nrfx/legacy/nrf_drv_uart.c
         ${SDK_ROOT}/integration/nrfx/legacy/nrf_drv_power.c
         ${SDK_ROOT}/integration/nrfx/legacy/nrf_drv_ppi.c
         ${SDK_ROOT}/integration/nrfx/legacy/nrf_drv_clock.c
@@ -195,7 +177,6 @@ set(SDK_SRCS
         ${SDK_ROOT}/modules/nrfx/drivers/src/nrfx_timer.c
         ${SDK_ROOT}/modules/nrfx/drivers/src/nrfx_wdt.c
         ${SDK_ROOT}/modules/nrfx/drivers/src/nrfx_uart.c
-        ${SDK_ROOT}/modules/nrfx/drivers/src/nrfx_uarte.c
         ${SDK_ROOT}/modules/nrfx/drivers/src/nrfx_saadc.c
         ${SDK_ROOT}/external/utf_converter/utf.c
         ${SDK_ROOT}/components/ble/ble_link_ctx_manager/ble_link_ctx_manager.c
@@ -228,12 +209,26 @@ set(SDK_SRCS
         ${SDK_ROOT}/components/ble/peer_manager/security_manager.c
         ${SDK_ROOT}/components/ble/ble_radio_notification/ble_radio_notification.c
         ${SDK_ROOT}/components/ble/ble_services/experimental_gatts_c/nrf_ble_gatts_c.c
+        ${SDK_ROOT}/components/softdevice/common/nrf_sdh.c
+        ${SDK_ROOT}/components/softdevice/common/nrf_sdh_ble.c
+        ${SDK_ROOT}/components/softdevice/common/nrf_sdh_soc.c
+
         ${SDK_ROOT}/modules/nrfx/mdk/gcc_startup_nrf52840.S
         ${SDK_ROOT}/modules/nrfx/mdk/system_nrf52840.c
         ${SDK_ROOT}/components/ant/ant_channel_config/ant_channel_config.c
         ${SDK_ROOT}/components/ant/ant_key_manager/ant_key_manager.c
         ${SDK_ROOT}/components/ant/ant_state_indicator/ant_state_indicator.c
         ${SDK_ROOT}/components/ant/ant_search_config/ant_search_config.c
+        ${SDK_ROOT}/components/softdevice/common/nrf_sdh.c
+        ${SDK_ROOT}/components/softdevice/common/nrf_sdh_ant.c
+        ${SDK_ROOT}/components/softdevice/common/nrf_sdh_ble.c
+        ${SDK_ROOT}/components/softdevice/common/nrf_sdh_soc.c
+        ${SDK_ROOT}/components/libraries/usbd/app_usbd.c
+        ${SDK_ROOT}/components/libraries/usbd/class/cdc/acm/app_usbd_cdc_acm.c
+        ${SDK_ROOT}/components/libraries/usbd/app_usbd_core.c
+        ${SDK_ROOT}/components/libraries/usbd/app_usbd_serial_num.c
+        ${SDK_ROOT}/components/libraries/usbd/app_usbd_string_desc.c
+        ${SDK_ROOT}/modules/nrfx/drivers/src/nrfx_usbd.c
         ${SDK_ROOT}/components/libraries/bootloader/dfu/nrf_dfu_svci.c
         ${SDK_ROOT}/components/ble/ble_services/ble_dfu/ble_dfu.c
         ${SDK_ROOT}/components/ble/ble_services/ble_dfu/ble_dfu_bonded.c
@@ -242,12 +237,43 @@ set(SDK_SRCS
 
 include_directories(${SDK_INCLUDES})
 
-set(TMR_SRCS
-        ${SDK_ROOT}/components/libraries/timer/app_timer2.c
-        )
+if(NOT USE_FREERTOS)
+    set(TMR_SRCS
+            ${SDK_ROOT}/components/libraries/timer/app_timer2.c
+            )
 
-include_directories(${SDK_INCLUDES})
+    include_directories(${SDK_INCLUDES})
 
-add_library(SDK_LIBS ${SDK_SRCS} ${TMR_SRCS} ${SD_SRCS})
+    add_library(SDK_LIBS ${SDK_SRCS} ${TMR_SRCS})
 
-target_include_directories(SDK_LIBS PUBLIC ${SDK_INCLUDES})
+    target_include_directories(SDK_LIBS PUBLIC ${SDK_INCLUDES})
+else()
+
+    set(FRTS_INCLUDES
+            ${SDK_ROOT}/external/freertos/source/include
+            ${SDK_ROOT}/external/freertos/portable/GCC/nrf52
+            ${SDK_ROOT}/external/freertos/portable/CMSIS/nrf52
+            )
+
+    set(FRTS_SRCS
+            ${SDK_ROOT}/components/libraries/timer/app_timer_freertos.c
+            ${SDK_ROOT}/external/freertos/source/croutine.c
+            ${SDK_ROOT}/external/freertos/source/event_groups.c
+            ${SDK_ROOT}/external/freertos/source/portable/MemMang/heap_4.c
+            ${SDK_ROOT}/external/freertos/source/list.c
+            ${SDK_ROOT}/external/freertos/portable/GCC/nrf52/port.c
+            ${SDK_ROOT}/external/freertos/portable/CMSIS/nrf52/port_cmsis.c
+            ${SDK_ROOT}/external/freertos/portable/CMSIS/nrf52/port_cmsis_systick.c
+            ${SDK_ROOT}/external/freertos/source/queue.c
+            ${SDK_ROOT}/external/freertos/source/stream_buffer.c
+            ${SDK_ROOT}/external/freertos/source/tasks.c
+            ${SDK_ROOT}/external/freertos/source/timers.c
+            ${SDK_ROOT}/components/softdevice/common/nrf_sdh_freertos.c
+            )
+
+    include_directories(${FRTS_INCLUDES})
+
+    add_library(SDK_LIBS ${SDK_SRCS} ${FRTS_SRCS})
+
+    target_include_directories(SDK_LIBS PUBLIC ${SDK_INCLUDES} ${FRTS_INCLUDES})
+endif()

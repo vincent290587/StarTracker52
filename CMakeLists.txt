@@ -46,7 +46,7 @@ add_definitions(-DANT_LICENSE_KEY="3831-521d-7df9-24d8-eff3-467b-225f-a00e")
 add_definitions(-DUSE_SVIEW=0 -DUSE_RTT=1) # we need NRF_LOG_ENABLED=1
 #add_definitions(-DUSE_SVIEW=0 -DUSE_JSCOPE -DUSE_RTT=1) # we need NRF_LOG_ENABLED=0
 add_definitions(-DUSE_APP_CONFIG)
-add_definitions(-DNRF52832_XXAA -DNRF52)
+add_definitions(-DNRF52840_XXAA)
 add_definitions(-DBL_SETTINGS_ACCESS_ONLY)
 add_definitions(-DNRF_DFU_SVCI_ENABLED)
 add_definitions(-DNRF_DFU_TRANSPORT_BLE=1)
@@ -62,7 +62,7 @@ add_definitions(-DSWI_DISABLE0)
 add_definitions(-DNRF52_PAN_74)
 add_definitions(-DFLOAT_ABI_HARD -fsingle-precision-constant)
 add_definitions(-Wdouble-promotion -Wfloat-conversion -Werror=return-type)
-add_definitions(-Wno-attributes -Wsign-compare -Wenum-compare -Werror)
+add_definitions(-Wno-attributes -Wsign-compare -Wenum-compare)
 
 
 add_link_options(-L${SDK_ROOT}/modules/nrfx/mdk)
@@ -120,7 +120,7 @@ aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/libraries/sysview SRCS)
 aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/libraries/task_manager SRCS)
 aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/libraries/utils SRCS)
 
-add_executable(${PROJECT_NAME}.elf ${SRCS})
+add_executable(${PROJECT_NAME}.elf ${SRCS} s340.ld)
 
 target_link_libraries(${PROJECT_NAME}.elf nosys)
 target_link_libraries(${PROJECT_NAME}.elf -Wl,--whole-archive SDK_LIBS -Wl,--no-whole-archive)
@@ -158,4 +158,9 @@ add_custom_target(flash
         COMMAND ${NRFJPROG} --program ${PROJECT_NAME}.hex -f nrf52 --sectorerase
         COMMAND ${NRFJPROG} --reset -f nrf52
         DEPENDS ${PROJECT_NAME}.hex)
+
+add_custom_target(flash_sd
+        COMMAND ${NRFJPROG} --program C:/Nordic/nRF5_SDK_17.1.0_ddde560/components/softdevice/ANT_s340_nrf52_7.0.1/ANT_s340_nrf52_7.0.1.hex -f nrf52 --sectorerase
+        COMMAND ${NRFJPROG} --reset -f nrf52
+        )
 
