@@ -104,8 +104,8 @@ set(SDK_INCLUDES
         ${SDK_ROOT}/components/ble/ble_link_ctx_manager
         ${SDK_ROOT}/components/ble/peer_manager
 
-        ${SDK_ROOT}/components/softdevice/ANT_s340_nrf52_7.0.1/ANT_s340_nrf52_7.0.1.API/include
-        ${SDK_ROOT}/components/softdevice/ANT_s340_nrf52_7.0.1/ANT_s340_nrf52_7.0.1.API/include/nrf52
+        ${SDK_ROOT}/components/softdevice/s140/headers
+        ${SDK_ROOT}/components/softdevice/s140/headers/nrf52
         ${SDK_ROOT}/components/libraries/usbd
         ${SDK_ROOT}/components/libraries/svc
         ${SDK_ROOT}/components/libraries/usbd/class/cdc/acm

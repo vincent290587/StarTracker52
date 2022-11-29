@@ -41,11 +41,9 @@
 
 #include "segger_wrapper.h"
 
-#define ADV_FOR_IPHONE                  1
+#define APP_BLE_CONN_CFG_TAG            1                                       /**< A tag identifying the SoftDevice BLE configuration. */
 
-#define APP_BLE_CONN_CFG_TAG            1                                           /**< A tag identifying the SoftDevice BLE configuration. */
-
-#define DEVICE_NAME                     "PowerKeith"                                   /**< Name of device. Will be included in the advertising data. */
+#define DEVICE_NAME                     "StarTracker52"                         /**< Name of device. Will be included in the advertising data. */
 
 #define APP_BLE_OBSERVER_PRIO           3    /**< Application's BLE observer priority. You shouldn't need to modify this value. */
 
@@ -267,7 +265,7 @@ void nrf_qwr_error_reset(void)
 static inline void battery_level_update(void)
 {
     ret_code_t err_code;
-    static uint8_t  battery_level = 50;
+    static uint8_t battery_level = 50;
 
     err_code = ble_bas_battery_level_update(&m_bas, battery_level, BLE_CONN_HANDLE_ALL);
     if ((err_code != NRF_SUCCESS) &&
@@ -754,8 +752,6 @@ void ble_init(void)
 	ble_stack_init();
 
     app_ble_peripheral_init();
-
-
 }
 
 uint16_t ble_get_mtu(void) {

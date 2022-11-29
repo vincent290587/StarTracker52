@@ -42,6 +42,7 @@
 #endif
 
 #include "nrf_pwr_mgmt.h"
+#include "app_ble_central.h"
 
 #ifdef __cplusplus
 }
@@ -382,6 +383,7 @@ int main(void) {
 #endif
 #if defined (BLE_STACK_SUPPORT_REQD)
     ble_init();
+    app_ble_central__init();
 #endif
 
     LOG_INFO("App init done");

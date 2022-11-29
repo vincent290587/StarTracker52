@@ -757,7 +757,7 @@
 
 
 #ifndef ANT_CHANNEL_CONFIG_ENABLED
-#define ANT_CHANNEL_CONFIG_ENABLED 1
+#define ANT_CHANNEL_CONFIG_ENABLED 0
 #endif
 
 #ifndef ANT_GLASSES_LOG_ENABLED
@@ -1092,7 +1092,7 @@
 // <e> ANT_SEARCH_CONFIG_ENABLED - ant_search_config - ANT common search configuration
 //==========================================================
 #ifndef ANT_SEARCH_CONFIG_ENABLED
-#define ANT_SEARCH_CONFIG_ENABLED 1
+#define ANT_SEARCH_CONFIG_ENABLED 0
 #endif
 // <o> ANT_DEFAULT_LOW_PRIORITY_TIMEOUT - Default low priority search time-out.  <0-255>
 
@@ -1118,7 +1118,7 @@
 // <e> NRF_SDH_ANT_ENABLED - nrf_sdh_ant - SoftDevice ANT event handler
 //==========================================================
 #ifndef NRF_SDH_ANT_ENABLED
-#define NRF_SDH_ANT_ENABLED 1
+#define NRF_SDH_ANT_ENABLED 0
 #endif
 // <h> ANT Channels
 
