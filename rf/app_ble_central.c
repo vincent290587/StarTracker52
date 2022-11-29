@@ -108,10 +108,12 @@ void on_ble_central_evt(ble_evt_t const * p_ble_evt) {
             // update the LEDs status and start scanning again.
         case BLE_GAP_EVT_DISCONNECTED:
         {
+            NRF_LOG_INFO("Central disconnected");
+
             // Start scanning.
             scan_start();
 
-            app_ble_central__take_pic(false);
+            m_conn_handle_a6x_c = BLE_CONN_HANDLE_INVALID;
 
         } break; // BLE_GAP_EVT_DISCONNECTED
 
@@ -370,14 +372,13 @@ void app_ble_central__take_pic(bool start) {
 
     static int _state = 0;
 
-    uint32_t err_code = NRF_SUCCESS;
-
     // on / off
     if (start) {
         if (!_state) {
             _state = 1;
         }
-    } else if (!ble_a6x_c_is_connected(&m_ble_a6x_c)) {
+        return; // HAVE TO RETURN HERE
+    } else if (!ble_a6x_c_is_connected(&m_ble_a6x_c) || m_conn_handle_a6x_c == BLE_CONN_HANDLE_INVALID) {
         _state = 0;
     }
 
@@ -390,6 +391,7 @@ void app_ble_central__take_pic(bool start) {
         _state = 4;
     }
 
+    uint32_t err_code = NRF_SUCCESS;
     switch (_state) {
         case 0u: // nothing
             break;

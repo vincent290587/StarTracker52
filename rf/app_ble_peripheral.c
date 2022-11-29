@@ -600,6 +600,8 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context)
     uint16_t conn_handle = p_ble_evt->evt.gap_evt.conn_handle;
     uint16_t role        = ble_conn_state_role(conn_handle);
 
+    //NRF_LOG_INFO("ble_evt_handler role=%u / %u", role, p_ble_evt->header.evt_id);
+
     // Based on the role this device plays in the connection, dispatch to the right handler.
     if (role == BLE_GAP_ROLE_PERIPH || ble_evt_is_advertising_timeout(p_ble_evt))
     {

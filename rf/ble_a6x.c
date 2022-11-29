@@ -203,8 +203,8 @@ uint32_t ble_a6x_c_init(ble_a6x_srv_t * p_cfg, const ble_a6x_c_init_t * p_cfg_in
     ble_uuid.type = p_cfg->uuid_type;
     ble_uuid.uuid = A6X_UUID_SRV;
 
-    err_code = sd_ble_gatts_service_add(BLE_GATTS_SRVC_TYPE_PRIMARY, &ble_uuid, &p_cfg->service_handle);
-    VERIFY_SUCCESS(err_code);
+//    err_code = sd_ble_gatts_service_add(BLE_GATTS_SRVC_TYPE_PRIMARY, &ble_uuid, &p_cfg->service_handle);
+//    VERIFY_SUCCESS(err_code);
 
     // Initialize service structure.
     p_cfg->evt_handler   = p_cfg_init->event_handler;
@@ -400,6 +400,7 @@ uint32_t ble_a6x_c_handles_assign(ble_a6x_srv_t *   p_cfg,
                                    a6x_db_t *        p_peer_handles)
 {
     VERIFY_PARAM_NOT_NULL(p_cfg);
+    VERIFY_PARAM_NOT_NULL(p_cfg->p_gatt_queue);
 
     p_cfg->conn_handle = conn_handle;
     if (p_peer_handles != NULL)
