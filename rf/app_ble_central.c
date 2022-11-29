@@ -384,7 +384,7 @@ void app_ble_central__take_pic(bool start) {
 
     // focus
     if (m_focus_acquired && _state == 1) {
-        _state = 2;
+        _state = 3;
     }
     // shutter
     if (m_shutter_triggered && _state == 3) {
@@ -401,24 +401,20 @@ void app_ble_central__take_pic(bool start) {
             m_focus_acquired = false;
             m_shutter_triggered = false;
 
-            err_code = ble_a6x_c_update(&m_ble_a6x_c, 0x106);
+            err_code = ble_a6x_c_update(&m_ble_a6x_c, ble_a6x_app_update_focus_up);
             APP_ERROR_CHECK(err_code);
 
-            w_task_delay(100);
+            w_task_delay(10);
 
-            err_code = ble_a6x_c_update(&m_ble_a6x_c, 0x108);
-            APP_ERROR_CHECK(err_code);
-
-            w_task_delay(100);
-
-            err_code = ble_a6x_c_update(&m_ble_a6x_c, 0x107);
+            err_code = ble_a6x_c_update(&m_ble_a6x_c, ble_a6x_app_update_focus_down);
             APP_ERROR_CHECK(err_code);
         } break;
 
         case 2u:
         {
-//            err_code = ble_a6x_c_update(&m_ble_a6x_c, ble_a6x_app_update_focus_hold);
-//            APP_ERROR_CHECK(err_code);
+            // TODO remove state
+            err_code = ble_a6x_c_update(&m_ble_a6x_c, ble_a6x_app_update_shutter_up);
+            APP_ERROR_CHECK(err_code);
 
             _state = 3u;
         } break;
@@ -429,22 +425,28 @@ void app_ble_central__take_pic(bool start) {
                 _state = 1u;
                 return;
             }
-            err_code = ble_a6x_c_update(&m_ble_a6x_c, 0x109);
+
+            err_code = ble_a6x_c_update(&m_ble_a6x_c, ble_a6x_app_update_shutter_up);
             APP_ERROR_CHECK(err_code);
 
-            w_task_delay(2000);
+            w_task_delay(10);
 
-            err_code = ble_a6x_c_update(&m_ble_a6x_c, 0x108);
+            err_code = ble_a6x_c_update(&m_ble_a6x_c, ble_a6x_app_update_shutter_down);
+            APP_ERROR_CHECK(err_code);
+
+            w_task_delay(2000); // TODO flexible time
+
+            err_code = ble_a6x_c_update(&m_ble_a6x_c, ble_a6x_app_update_shutter_up);
+            APP_ERROR_CHECK(err_code);
+
+            w_task_delay(10);
+
+            err_code = ble_a6x_c_update(&m_ble_a6x_c, ble_a6x_app_update_shutter_down); // releases shutter : end BULB with that one
             APP_ERROR_CHECK(err_code);
 
             w_task_delay(100);
 
-            err_code = ble_a6x_c_update(&m_ble_a6x_c, 0x109); // releases shutter : end BULB with that one
-            APP_ERROR_CHECK(err_code);
-
-            w_task_delay(100);
-
-            err_code = ble_a6x_c_update(&m_ble_a6x_c, 0x106);
+            err_code = ble_a6x_c_update(&m_ble_a6x_c, ble_a6x_app_update_focus_up);
             APP_ERROR_CHECK(err_code);
         } break;
 

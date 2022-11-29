@@ -83,10 +83,10 @@ typedef struct
 } ble_a6x_c_init_t;
 
 typedef enum {
-    ble_a6x_app_update_shutter_released = 0x106u,
-    ble_a6x_app_update_focus_transition = 0x107u,
-    ble_a6x_app_update_focus_hold       = 0x108u,
-    ble_a6x_app_update_shutter_pressed  = 0x109u,
+    ble_a6x_app_update_focus_up      = 0x106u,
+    ble_a6x_app_update_focus_down    = 0x107u,
+    ble_a6x_app_update_shutter_up    = 0x108u,
+    ble_a6x_app_update_shutter_down  = 0x109u,
 } ble_a6x_app_update_t;
 
 /**@brief Service structure. This structure contains various status information for the service. */
