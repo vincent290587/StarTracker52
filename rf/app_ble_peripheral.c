@@ -14,6 +14,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <stdbool.h>
+#include <nrf_fstorage.h>
 #include "nrf.h"
 #include "nrf_delay.h"
 #include "ble_hci.h"
@@ -40,6 +41,7 @@
 #include "peer_manager_handler.h"
 
 #include "segger_wrapper.h"
+#include "app_ble_central.h"
 
 #define APP_BLE_CONN_CFG_TAG            1                                       /**< A tag identifying the SoftDevice BLE configuration. */
 
@@ -62,7 +64,7 @@
 
 #define LESC_DEBUG_MODE                     0                                       /**< Set to 1 to use LESC debug keys, allows you to use a sniffer to inspect traffic. */
 
-#define SEC_PARAM_BOND                      0                                       /**< Perform bonding. */
+#define SEC_PARAM_BOND                      1                                       /**< Perform bonding. */
 #define SEC_PARAM_MITM                      0                                       /**< Man In The Middle protection not required. */
 #define SEC_PARAM_LESC                      1                                       /**< LE Secure Connections enabled. */
 #define SEC_PARAM_KEYPRESS                  0                                       /**< Keypress notifications not enabled. */
@@ -87,6 +89,8 @@ static uint16_t   m_ble_nus_max_data_len = 20;            /**< Maximum length of
 static uint32_t m_qwr_nrf_error = 0;
 
 void app_ble_advertising_restart(void);
+
+void adv_scan_start(void);
 
 /**@brief Function for the GAP initialization.
  *
@@ -287,12 +291,13 @@ static inline void battery_level_update(void)
 static void pm_evt_handler(pm_evt_t const * p_evt)
 {
     pm_handler_on_pm_evt(p_evt);
+    pm_handler_disconnect_on_sec_failure(p_evt);
     pm_handler_flash_clean(p_evt);
 
     switch (p_evt->evt_id)
     {
         case PM_EVT_PEERS_DELETE_SUCCEEDED:
-            app_ble_advertising_start();
+            adv_scan_start();
             break;
 
         default:
@@ -462,7 +467,7 @@ static void on_adv_evt(ble_adv_evt_t ble_adv_evt)
  * @param[in]   p_ble_evt   Bluetooth stack event.
  * @param[in]   p_context   Unused.
  */
-static void app_ble_peripheral_ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context)
+static void _on_ble_peripheral_evt(ble_evt_t const * p_ble_evt, void * p_context)
 {
     uint32_t err_code;
     ble_gap_evt_t const * p_gap_evt = &p_ble_evt->evt.gap_evt;
@@ -557,6 +562,36 @@ static void app_ble_peripheral_ble_evt_handler(ble_evt_t const * p_ble_evt, void
         default:
             // No implementation needed.
             break;
+    }
+}
+
+/**@brief Function for checking whether a bluetooth stack event is an advertising timeout.
+ *
+ * @param[in] p_ble_evt Bluetooth stack event.
+ */
+static bool ble_evt_is_advertising_timeout(ble_evt_t const * p_ble_evt)
+{
+    return (p_ble_evt->header.evt_id == BLE_GAP_EVT_ADV_SET_TERMINATED);
+}
+
+/**@brief Function for handling BLE events.
+ *
+ * @param[in]   p_ble_evt   Bluetooth stack event.
+ * @param[in]   p_context   Unused.
+ */
+static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context)
+{
+    uint16_t conn_handle = p_ble_evt->evt.gap_evt.conn_handle;
+    uint16_t role        = ble_conn_state_role(conn_handle);
+
+    // Based on the role this device plays in the connection, dispatch to the right handler.
+    if (role == BLE_GAP_ROLE_PERIPH || ble_evt_is_advertising_timeout(p_ble_evt))
+    {
+        _on_ble_peripheral_evt(p_ble_evt, NULL);
+    }
+    else if ((role == BLE_GAP_ROLE_CENTRAL) || (p_ble_evt->header.evt_id == BLE_GAP_EVT_ADV_REPORT))
+    {
+        on_ble_central_evt(p_ble_evt);
     }
 }
 
@@ -676,14 +711,24 @@ static void advertising_init(void)
     ble_advertising_conn_cfg_tag_set(&m_advertising, APP_BLE_CONN_CFG_TAG);
 }
 
-/**@brief Function for starting advertising.
- */
-void app_ble_advertising_start(void)
-{
-    uint32_t err_code = ble_advertising_start(&m_advertising, BLE_ADV_MODE_FAST);
-    APP_ERROR_CHECK(err_code);
 
-    NRF_LOG_WARNING("app_ble_advertising_start");
+/**@brief Function for initializing the advertising and the scanning.
+ */
+void adv_scan_start(void)
+{
+    ret_code_t err_code;
+
+    //check if there are no flash operations in progress
+    if (!nrf_fstorage_is_busy(NULL))
+    {
+        // Start scanning for peripherals and initiate connection to devices which
+        // advertise Heart Rate or Running speed and cadence UUIDs.
+        scan_start();
+
+        // Start advertising.
+        err_code = ble_advertising_start(&m_advertising, BLE_ADV_MODE_FAST);
+        APP_ERROR_CHECK(err_code);
+    }
 }
 
 /**@brief Function for starting advertising.
@@ -728,7 +773,7 @@ static void ble_stack_init(void)
 void app_ble_peripheral_init(void) {
 
     // Register a handler for BLE events.
-    NRF_SDH_BLE_OBSERVER(m_ble_observer, APP_BLE_OBSERVER_PRIO, app_ble_peripheral_ble_evt_handler, NULL);
+    NRF_SDH_BLE_OBSERVER(m_ble_observer, APP_BLE_OBSERVER_PRIO, ble_evt_handler, NULL);
 
     gatt_init();
 
@@ -740,8 +785,6 @@ void app_ble_peripheral_init(void) {
 #if SEC_PARAM_BOND
     peer_manager_init();
 #endif
-
-    app_ble_advertising_start();
 
 }
 

@@ -384,6 +384,8 @@ int main(void) {
 #if defined (BLE_STACK_SUPPORT_REQD)
     ble_init();
     app_ble_central__init();
+    extern void adv_scan_start(void);
+    adv_scan_start();
 #endif
 
     LOG_INFO("App init done");

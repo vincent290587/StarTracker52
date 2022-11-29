@@ -142,6 +142,8 @@ set(SDK_SRCS
         ${SDK_ROOT}/components/libraries/atomic_fifo/nrf_atfifo.c
         ${SDK_ROOT}/components/libraries/atomic_flags/nrf_atflags.c
         ${SDK_ROOT}/components/libraries/fstorage/nrf_fstorage.c
+        ${SDK_ROOT}/components/libraries/fstorage/nrf_fstorage_nvmc.c
+        ${SDK_ROOT}/components/libraries/fstorage/nrf_fstorage_sd.c
         ${SDK_ROOT}/components/libraries/balloc/nrf_balloc.c
         ${SDK_ROOT}/external/fprintf/nrf_fprintf.c
         ${SDK_ROOT}/external/fprintf/nrf_fprintf_format.c
