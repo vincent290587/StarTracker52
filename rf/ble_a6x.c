@@ -24,22 +24,6 @@ do                                                      \
     }                                                   \
 } while(0)
 
-/**@brief Function for handling the Write event.
- *
- * @param[in] p_cfg      Service structure pointer
- * @param[in] p_ble_evt  Event received from the BLE stack.
- */
-//static void on_write(ble_a6x_srv_t * p_cfg, ble_evt_t const * p_ble_evt)
-//{
-//    ble_gatts_evt_write_t const * p_evt_write = &p_ble_evt->evt.gatts_evt.params.write;
-//
-//    if (   (p_evt_write->handle == p_cfg->ra_handles.value_handle)
-//           && (p_cfg->write_handler != NULL))
-//    {
-//        p_cfg->write_handler(p_ble_evt->evt.gap_evt.conn_handle, p_evt_write->data, p_evt_write->len);
-//    }
-//}
-
 
 /**@brief     Function for handling write response events.
  *
@@ -103,12 +87,34 @@ static void on_hvx(ble_a6x_srv_t * p_cfg, ble_evt_t const * p_ble_evt)
         return;
     }
 
-    if (p_ble_evt->evt.gattc_evt.params.hvx.handle == p_cfg->ra_handles.value_handle)
+    if (p_ble_evt->evt.gattc_evt.params.hvx.handle == p_cfg->peer_db.ra_handle)
     {
-        //p_cfg->write_handler(p_ble_evt->evt.gap_evt.conn_handle, p_evt_write->data, p_evt_write->len);
-        NRF_LOG_INFO("received HVX on handle 0x%x, komoot_handle 0x%x\r\n",
+        NRF_LOG_DEBUG("received HVX on handle 0x%x, ra_handle 0x%x\r\n",
                      p_ble_evt->evt.gattc_evt.params.hvx.handle,
                      p_cfg->peer_db.ra_handle);
+
+        NRF_LOG_INFO("on_hvx len: %u", p_ble_evt->evt.gattc_evt.params.hvx.len);
+        NRF_LOG_HEXDUMP_INFO(p_ble_evt->evt.gattc_evt.params.hvx.data, p_ble_evt->evt.gattc_evt.params.hvx.len);
+
+        ble_a6x_c_evt_t ble_c_evt;
+
+        // The data length was invalid, decoding was not completed.
+        ble_c_evt.evt_type = BLE_A6X_C_EVT_DATA;
+
+        if (3u == p_ble_evt->evt.gattc_evt.params.hvx.len) {
+
+            ble_c_evt.params.a6x_data.first = p_ble_evt->evt.gattc_evt.params.hvx.data[0];
+            ble_c_evt.params.a6x_data.second = p_ble_evt->evt.gattc_evt.params.hvx.data[1];
+            ble_c_evt.params.a6x_data.third = p_ble_evt->evt.gattc_evt.params.hvx.data[2];
+
+            p_cfg->evt_handler(p_cfg, &ble_c_evt);
+        }
+
+    } else {
+
+        NRF_LOG_INFO("received HVX on handle 0x%x, rc_handle 0x%x\r\n",
+                     p_ble_evt->evt.gattc_evt.params.hvx.handle,
+                     p_cfg->peer_db.rc_handle);
     }
 }
 
@@ -136,6 +142,9 @@ static void on_disconnect(ble_a6x_srv_t * p_cfg, ble_evt_t const *p_ble_evt) {
 
     if (p_cfg) {
         p_cfg->conn_handle = BLE_CONN_HANDLE_INVALID;
+        p_cfg->peer_db.cccd_handle = BLE_CONN_HANDLE_INVALID;
+        p_cfg->peer_db.ra_handle = BLE_CONN_HANDLE_INVALID;
+        p_cfg->peer_db.rc_handle = BLE_CONN_HANDLE_INVALID;
     }
 }
 
@@ -183,6 +192,7 @@ uint32_t ble_a6x_c_init(ble_a6x_srv_t * p_cfg, const ble_a6x_c_init_t * p_cfg_in
 
     VERIFY_PARAM_NOT_NULL(p_cfg);
     VERIFY_PARAM_NOT_NULL(p_cfg_init);
+    VERIFY_PARAM_NOT_NULL(p_cfg_init->p_gatt_queue);
 
     p_cfg->conn_handle = BLE_CONN_HANDLE_INVALID;
 
@@ -199,7 +209,6 @@ uint32_t ble_a6x_c_init(ble_a6x_srv_t * p_cfg, const ble_a6x_c_init_t * p_cfg_in
     // Initialize service structure.
     p_cfg->evt_handler   = p_cfg_init->event_handler;
     p_cfg->error_handler = p_cfg_init->error_handler;
-//    p_cfg->write_handler = p_cfg_init->write_handler;
 
     p_cfg->p_gatt_queue           = p_cfg_init->p_gatt_queue;
     p_cfg->conn_handle            = BLE_CONN_HANDLE_INVALID;
@@ -220,13 +229,13 @@ static void gatt_error_handler(uint32_t   nrf_error,
                                void     * p_ctx,
                                uint16_t   conn_handle)
 {
-    ble_a6x_srv_t * p_ble_rscs_c = (ble_a6x_srv_t *)p_ctx;
+    ble_a6x_srv_t * p_ble_srv_c = (ble_a6x_srv_t *)p_ctx;
 
     NRF_LOG_DEBUG("A GATT Client error has occurred on conn_handle: 0X%X", conn_handle);
 
-    if (p_ble_rscs_c->error_handler != NULL)
+    if (p_ble_srv_c->error_handler != NULL)
     {
-        p_ble_rscs_c->error_handler(nrf_error);
+        p_ble_srv_c->error_handler(nrf_error);
     }
 }
 
@@ -260,8 +269,7 @@ uint32_t ble_a6x_c_notif_enable(ble_a6x_srv_t * p_ble_srv_c)
     VERIFY_PARAM_NOT_NULL(p_ble_srv_c);
 
     if ( (p_ble_srv_c->conn_handle == BLE_CONN_HANDLE_INVALID)
-         || (p_ble_srv_c->peer_db.cccd_handle == BLE_GATT_HANDLE_INVALID)
-            )
+         || (p_ble_srv_c->peer_db.cccd_handle == BLE_GATT_HANDLE_INVALID))
     {
         return NRF_ERROR_INVALID_STATE;
     }
@@ -276,34 +284,62 @@ uint32_t ble_a6x_c_update(ble_a6x_srv_t * p_cfg, ble_a6x_app_update_t cmd_update
         return 0;
     }
 
-    ble_gatts_value_t gatts_value;
+    uint8_t cmd_value[2] = {
+            [0] = (cmd_update & 0xff00) >> 8u,
+            [1] = cmd_update & 0x00ff,
+    };
 
+    NRF_LOG_INFO("ble_a6x_c_update %04X (handle= %u)",cmd_update, p_cfg->peer_db.rc_handle);
+
+#if 0
     // Initialize value struct.
+    ble_gatts_value_t gatts_value;
     memset(&gatts_value, 0, sizeof(gatts_value));
 
-    gatts_value.len     = sizeof(ble_a6x_app_update_t);
+    gatts_value.len     = sizeof(cmd_value);
     gatts_value.offset  = 0;
-    gatts_value.p_value = (uint8_t*)cmd_update;
+    gatts_value.p_value = cmd_value;
 
     // Update database.
-    err_code = sd_ble_gatts_value_set(p_cfg->conn_handle, p_cfg->rc_handles.value_handle, &gatts_value);
+    err_code = sd_ble_gatts_value_set(p_cfg->conn_handle, p_cfg->peer_db.rc_handle, &gatts_value);
     if (err_code != NRF_SUCCESS) {
         return err_code;
     }
+#else
+    nrf_ble_gq_req_t write_req;
 
-//	if (p_cfg->conn_handle != BLE_CONN_HANDLE_INVALID) {
-//
-//		ble_gatts_hvx_params_t hvx_params;
-//		memset(&hvx_params, 0, sizeof(hvx_params));
-//		hvx_params.type   = BLE_GATT_HVX_NOTIFICATION;
-//		hvx_params.handle = p_cfg->button_char_handles.value_handle;
-//		hvx_params.offset = gatts_value.offset;
-//		hvx_params.p_len = &gatts_value.len;
-//		hvx_params.p_data = gatts_value.p_value;
-//		// BLE_ERROR_GATTS_SYS_ATTR_MISSING
-//		err_code = sd_ble_gatts_hvx(p_cfg->conn_handle, &hvx_params);
-//		NRF_LOG_INFO("sd_ble_gatts_hvx result: %x. \r\n", err_code);
-//	}
+    memset(&write_req, 0, sizeof(nrf_ble_gq_req_t));
+
+    write_req.type                        = NRF_BLE_GQ_REQ_GATTC_WRITE;
+    write_req.error_handler.cb            = gatt_error_handler;
+    write_req.error_handler.p_ctx         = p_cfg;
+    write_req.params.gattc_write.handle   = p_cfg->peer_db.rc_handle;
+    write_req.params.gattc_write.len      = sizeof(cmd_value);
+    write_req.params.gattc_write.p_value  = cmd_value;
+    write_req.params.gattc_write.offset   = 0;
+    write_req.params.gattc_write.write_op = BLE_GATT_OP_WRITE_CMD;
+    write_req.params.gattc_write.flags    = BLE_GATT_EXEC_WRITE_FLAG_PREPARED_WRITE;
+
+    err_code = nrf_ble_gq_item_add(p_cfg->p_gatt_queue, &write_req, p_cfg->conn_handle);
+    APP_ERROR_CHECK(err_code);
+#endif
+
+#if 0
+	if (p_cfg->conn_handle != BLE_CONN_HANDLE_INVALID) {
+
+        uint16_t cmdLen = sizeof(cmd_value);
+		ble_gatts_hvx_params_t hvx_params;
+		memset(&hvx_params, 0, sizeof(hvx_params));
+		hvx_params.type   = BLE_GATT_HVX_NOTIFICATION;
+		hvx_params.handle = p_cfg->peer_db.rc_handle;
+		hvx_params.offset = 0;
+		hvx_params.p_len = &cmdLen;
+		hvx_params.p_data = cmd_value;
+		// BLE_ERROR_GATTS_SYS_ATTR_MISSING
+		err_code = sd_ble_gatts_hvx(p_cfg->conn_handle, &hvx_params);
+		NRF_LOG_INFO("sd_ble_gatts_hvx result: %x. \r\n", err_code);
+	}
+#endif
 
     return err_code;
 }
@@ -346,7 +382,8 @@ void ble_a6x_c_on_db_disc_evt(ble_a6x_srv_t * p_ble_nus_c, ble_db_discovery_evt_
         if (p_ble_nus_c->conn_handle != BLE_CONN_HANDLE_INVALID)
         {
             if ((p_ble_nus_c->peer_db.cccd_handle == BLE_GATT_HANDLE_INVALID)&&
-                (p_ble_nus_c->peer_db.rc_handle == BLE_GATT_HANDLE_INVALID))
+                (p_ble_nus_c->peer_db.rc_handle == BLE_GATT_HANDLE_INVALID)&&
+                (p_ble_nus_c->peer_db.ra_handle == BLE_GATT_HANDLE_INVALID))
             {
                 p_ble_nus_c->peer_db = evt.params.peer_db;
             }
@@ -358,16 +395,27 @@ void ble_a6x_c_on_db_disc_evt(ble_a6x_srv_t * p_ble_nus_c, ble_db_discovery_evt_
     }
 }
 
-uint32_t ble_a6x_c_handles_assign(ble_a6x_srv_t *   p_ble_rscs_c,
+uint32_t ble_a6x_c_handles_assign(ble_a6x_srv_t *   p_cfg,
                                    uint16_t          conn_handle,
                                    a6x_db_t *        p_peer_handles)
 {
-    VERIFY_PARAM_NOT_NULL(p_ble_rscs_c);
-    p_ble_rscs_c->conn_handle = conn_handle;
+    VERIFY_PARAM_NOT_NULL(p_cfg);
+
+    p_cfg->conn_handle = conn_handle;
     if (p_peer_handles != NULL)
     {
-        p_ble_rscs_c->peer_db = *p_peer_handles;
+        p_cfg->peer_db = *p_peer_handles;
     }
 
-    return nrf_ble_gq_conn_handle_register(p_ble_rscs_c->p_gatt_queue, conn_handle);
+    return nrf_ble_gq_conn_handle_register(p_cfg->p_gatt_queue, conn_handle);
 }
+
+bool ble_a6x_c_is_connected(ble_a6x_srv_t * p_cfg)
+{
+    VERIFY_PARAM_NOT_NULL(p_cfg);
+
+    //NRF_LOG_WARNING("ble_a6x_c_is_connected %u %u", p_cfg->conn_handle, p_cfg->peer_db.rc_handle);
+
+    return (p_cfg->conn_handle != BLE_CONN_HANDLE_INVALID) && (p_cfg->peer_db.rc_handle != BLE_CONN_HANDLE_INVALID);
+}
+

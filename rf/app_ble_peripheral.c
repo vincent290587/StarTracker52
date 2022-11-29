@@ -75,13 +75,11 @@
 
 /**< Device information service is in the function "services_init" */
 BLE_BAS_DEF(m_bas);                                                                 /**< Battery service instance. */
-BLE_NUS_DEF(m_nus, NRF_SDH_BLE_TOTAL_LINK_COUNT);
+BLE_NUS_DEF(m_nus, NRF_SDH_BLE_PERIPHERAL_LINK_COUNT);
 NRF_BLE_GATT_DEF(m_gatt);                                                           /**< GATT module instance. */
-NRF_BLE_QWR_DEF(m_qwr);                                                             /**< Context for the Queued Write module.*/
+NRF_BLE_QWRS_DEF(m_qwr, NRF_SDH_BLE_TOTAL_LINK_COUNT);                  /**< Context for the Queued Write module.*/
 BLE_ADVERTISING_DEF(m_advertising);                                                 /**< Advertising module instance. */
-//NRF_BLE_GQ_DEF(m_ble_gatt_queue,                                                  /**< BLE GATT queue instance. */
-//		NRF_SDH_BLE_TOTAL_LINK_COUNT,
-//        NRF_BLE_GQ_QUEUE_SIZE);
+
 
 static uint16_t   m_conn_handle          = BLE_CONN_HANDLE_INVALID;                 /**< Handle of the current connection. */
 static uint16_t   m_ble_nus_max_data_len = 20;            /**< Maximum length of data (in bytes) that can be transmitted to the peer by the Nordic UART service module. */
@@ -322,6 +320,22 @@ uint32_t app_ble_nus_data_send(uint8_t *p_data, uint16_t length) {
 	return ble_nus_data_send(&m_nus, p_data, &length, m_conn_handle);
 }
 
+/**@brief Function for assigning new connection handle to available instance of QWR module.
+ *
+ * @param[in] conn_handle New connection handle.
+ */
+void multi_qwr_conn_handle_assign(uint16_t conn_handle)
+{
+    for (uint32_t i = 0; i < NRF_SDH_BLE_TOTAL_LINK_COUNT; i++)
+    {
+        if (m_qwr[i].conn_handle == BLE_CONN_HANDLE_INVALID)
+        {
+            ret_code_t err_code = nrf_ble_qwr_conn_handle_assign(&m_qwr[i], conn_handle);
+            APP_ERROR_CHECK(err_code);
+            break;
+        }
+    }
+}
 
 /**@brief Function for initializing services that will be used by the application.
  */
@@ -336,8 +350,11 @@ static void services_init(void)
     // Initialize Queued Write Module.
     qwr_init.error_handler = nrf_qwr_error_handler;
 
-    err_code = nrf_ble_qwr_init(&m_qwr, &qwr_init);
-    APP_ERROR_CHECK(err_code);
+    for (uint32_t i = 0; i < NRF_SDH_BLE_TOTAL_LINK_COUNT; i++)
+    {
+        err_code = nrf_ble_qwr_init(&m_qwr[i], &qwr_init);
+        APP_ERROR_CHECK(err_code);
+    }
 
     // Initialize Device Information Service.
     memset(&dis_init, 0, sizeof(dis_init));
@@ -481,8 +498,7 @@ static void _on_ble_peripheral_evt(ble_evt_t const * p_ble_evt, void * p_context
         	    battery_level_update();
 
         		m_conn_handle = p_ble_evt->evt.gap_evt.conn_handle;
-        		err_code = nrf_ble_qwr_conn_handle_assign(&m_qwr, m_conn_handle);
-        		APP_ERROR_CHECK(err_code);
+                multi_qwr_conn_handle_assign(m_conn_handle);
         	}
             break;
 
@@ -591,6 +607,7 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context)
     }
     else if ((role == BLE_GAP_ROLE_CENTRAL) || (p_ble_evt->header.evt_id == BLE_GAP_EVT_ADV_REPORT))
     {
+        extern void on_ble_central_evt(ble_evt_t const * p_ble_evt);
         on_ble_central_evt(p_ble_evt);
     }
 }

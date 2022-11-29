@@ -15,6 +15,7 @@
 #if defined (BLE_STACK_SUPPORT_REQD)
 #include "app_ble_peripheral.h"
 #include "uln2003.h"
+#include "app_ble_central.h"
 
 #endif
 
@@ -53,7 +54,9 @@ void sensors_task(void * p_context) {
 
     for(;;)
     {
-        w_task_delay(5000);
+        w_task_delay(1000);
+
+        app_ble_central__take_pic(false);
     }
 
 }

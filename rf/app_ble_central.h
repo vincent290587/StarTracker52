@@ -14,7 +14,7 @@ void app_ble_central__init(void);
 
 void scan_start(void);
 
-void on_ble_central_evt(ble_evt_t const * p_ble_evt);
+void app_ble_central__take_pic(bool start);
 
 #ifdef __cplusplus
 }

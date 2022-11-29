@@ -51,6 +51,13 @@ typedef struct
     uint16_t rc_handle;       /**< Handle of the characteristic as provided by the SoftDevice. */
 } a6x_db_t;
 
+typedef struct
+{
+    uint8_t first;
+    uint8_t second;
+    uint8_t third;
+} a6x_rsp_t;
+
 /**@brief SRV Event structure. */
 typedef struct
 {
@@ -59,7 +66,7 @@ typedef struct
     union
     {
         a6x_db_t  peer_db;            /**< KOMOOT related handles found on the peer device.. This will be filled if the evt_type is @ref BLE_KOMOOT_C_EVT_DISCOVERY_COMPLETE.*/
-        uint8_t   a6x_data[4];                /**< KOMOOT measurement received. This will be filled if the evt_type is @ref BLE_KOMOOT_C_EVT_NOTIFICATION. */
+        a6x_rsp_t a6x_data;                /**< KOMOOT measurement received. This will be filled if the evt_type is @ref BLE_KOMOOT_C_EVT_NOTIFICATION. */
     } params;
 } ble_a6x_c_evt_t;
 
@@ -87,8 +94,8 @@ struct ble_a6x_srv_s
 {
     uint16_t                    conn_handle;          /**< Peripheral handle */
     uint16_t                    service_handle;       /**< Handle of the Service (as provided by the BLE stack). */
-    ble_gatts_char_handles_t    rc_handles;           /**< Handles related to the RC Characteristic. */
-    ble_gatts_char_handles_t    ra_handles;           /**< Handles related to the RA Characteristic. */
+//    ble_gatts_char_handles_t    rc_handles;           /**< Handles related to the RC Characteristic. */
+//    ble_gatts_char_handles_t    ra_handles;           /**< Handles related to the RA Characteristic. */
     uint8_t                     uuid_type;            /**< UUID type for the LED Button Service. */
 //    ble_a6x_write_handler_t     write_handler;    /**< Event handler to be called when the LED Characteristic is written. */
 
@@ -137,9 +144,11 @@ void ble_a6x_c_on_db_disc_evt(ble_a6x_srv_t * p_ble_nus_c, ble_db_discovery_evt_
 
 uint32_t ble_a6x_c_notif_enable(ble_a6x_srv_t * p_cfg);
 
-uint32_t ble_a6x_c_handles_assign(ble_a6x_srv_t *   p_ble_rscs_c,
+uint32_t ble_a6x_c_handles_assign(ble_a6x_srv_t *    p_cfg,
                                    uint16_t          conn_handle,
                                    a6x_db_t *        p_peer_handles);
+
+bool ble_a6x_c_is_connected(ble_a6x_srv_t * p_cfg);
 
 #ifdef __cplusplus
 }

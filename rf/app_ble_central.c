@@ -6,6 +6,7 @@
 
 #include <ble_nus_c.h>
 #include <peer_manager.h>
+#include <nrf_ble_qwr.h>
 #include "app_ble_central.h"
 #include "nordic_common.h"
 #include "app_error.h"
@@ -80,7 +81,7 @@ void on_ble_central_evt(ble_evt_t const * p_ble_evt) {
         // discovery, update LEDs status, and resume scanning, if necessary.
         case BLE_GAP_EVT_CONNECTED:
         {
-            LOG_INFO("Connected handle 0x%x.", p_gap_evt->conn_handle);
+            NRF_LOG_INFO("Central connected");
 
 //            m_retry_db_disc = false;
 //            m_pending_db_disc_conn = p_gap_evt->conn_handle;
@@ -98,7 +99,8 @@ void on_ble_central_evt(ble_evt_t const * p_ble_evt) {
             }
 
             // Assign connection handle to the QWR module.
-//            multi_qwr_conn_handle_assign(p_gap_evt->conn_handle);
+            extern void multi_qwr_conn_handle_assign(uint16_t conn_handle);
+            multi_qwr_conn_handle_assign(p_gap_evt->conn_handle);
 
         } break; // BLE_GAP_EVT_CONNECTED
 
@@ -108,6 +110,8 @@ void on_ble_central_evt(ble_evt_t const * p_ble_evt) {
         {
             // Start scanning.
             scan_start();
+
+            app_ble_central__take_pic(false);
 
         } break; // BLE_GAP_EVT_DISCONNECTED
 
@@ -249,6 +253,9 @@ static void _service_c_error_handler(uint32_t nrf_error)
     APP_ERROR_HANDLER(nrf_error);
 }
 
+static bool m_focus_acquired = false;
+static bool m_shutter_triggered = false;
+
 static void _a6x_c_evt_handler(ble_a6x_srv_t * p_ble_a6x_c, ble_a6x_c_evt_t * p_evt) {
 
     LOG_INFO("A6X event: 0x%X\r\n", p_evt->evt_type);
@@ -276,14 +283,47 @@ static void _a6x_c_evt_handler(ble_a6x_srv_t * p_ble_a6x_c, ble_a6x_c_evt_t * p_
                 // Enable notifications.
                 err_code = ble_a6x_c_notif_enable(p_ble_a6x_c);
                 APP_ERROR_CHECK(err_code);
+
+                app_ble_central__take_pic(true);
             }
         }
             break; // BLE_RSCS_C_EVT_DISCOVERY_COMPLETE:
 
         case BLE_A6X_C_EVT_DATA: {
+            if (p_evt->params.a6x_data.first == 0x02) {
+                switch (p_evt->params.a6x_data.second) {
+                    case 0x3F: {
+                        uint8_t _focusStatus = p_evt->params.a6x_data.third;
 
-        }
-            break; // BLE_A6X_C_EVT_DATA
+                        if (_focusStatus == 0x20) {
+                            m_focus_acquired = true;
+//                            rs->set(Status::FOCUS_ACQUIRED);
+                        } else {
+                            m_focus_acquired = false;
+//                            rs->set(Status::READY);
+                        }
+
+                    } break;
+
+                    case 0xA0: {
+                        uint8_t _shutterStatus = p_evt->params.a6x_data.third;
+
+                        if (_shutterStatus == 0x20) {
+//                            rs->set(Status::SHUTTER);
+                            m_shutter_triggered = true;
+                        } else {
+//                            rs->set(Status::READY);
+                            m_shutter_triggered = false;
+                        }
+
+                    } break;
+
+                    case 0xD5:
+                    {   uint8_t _recordingStatus = p_evt->params.a6x_data.third;
+                    } break;
+                }
+            }
+        } break; // BLE_A6X_C_EVT_DATA
 
         default:
             // No implementation needed.
@@ -299,6 +339,18 @@ static void _a6x_write_handler_t(uint16_t conn_handle, const uint8_t *p_data, ui
     NRF_LOG_RAW_HEXDUMP_INFO(p_data, len);
 }
 
+/**@brief Function for handling Queued Write module errors.
+ *
+ * @details A pointer to this function is passed to each service that may need to inform the
+ *          application about an error.
+ *
+ * @param[in]   nrf_error   Error code that contains information about what went wrong.
+ */
+static void nrf_qwr_error_handler(uint32_t nrf_error)
+{
+    APP_ERROR_HANDLER(nrf_error);
+}
+
 /**@brief Function for initializing the Nordic UART Service (NUS) client. */
 static void a6x_c_init(void)
 {
@@ -312,6 +364,74 @@ static void a6x_c_init(void)
 
     err_code = ble_a6x_c_init(&m_ble_a6x_c, &init_a6x);
     APP_ERROR_CHECK(err_code);
+}
+
+void app_ble_central__take_pic(bool start) {
+
+    static int _state = 0;
+
+    uint32_t err_code = NRF_SUCCESS;
+
+    // on / off
+    if (start) {
+        if (!_state) {
+            _state = 1;
+        }
+    } else if (!ble_a6x_c_is_connected(&m_ble_a6x_c)) {
+        _state = 0;
+    }
+
+    // focus
+    if (m_focus_acquired && _state == 1) {
+        _state = 3;
+    }
+    // shutter
+    if (m_shutter_triggered && _state == 3) {
+        _state = 4;
+    }
+
+    switch (_state) {
+        case 0u: // nothing
+            break;
+
+        case 1u:
+        {
+            err_code = ble_a6x_c_update(&m_ble_a6x_c, ble_a6x_app_update_shutter_released);
+            APP_ERROR_CHECK(err_code);
+
+            w_task_delay(100);
+
+            err_code = ble_a6x_c_update(&m_ble_a6x_c, ble_a6x_app_update_focus_transition);
+            APP_ERROR_CHECK(err_code);
+        } break;
+
+        case 2u:
+        {
+            err_code = ble_a6x_c_update(&m_ble_a6x_c, ble_a6x_app_update_focus_hold);
+            APP_ERROR_CHECK(err_code);
+
+            _state = 3u;
+        } break;
+
+        case 3u:
+        {
+            if (!m_focus_acquired) {
+                _state = 1u;
+                return;
+            }
+            err_code = ble_a6x_c_update(&m_ble_a6x_c, ble_a6x_app_update_shutter_pressed);
+            APP_ERROR_CHECK(err_code);
+        } break;
+
+        case 4u:
+        {
+            NRF_LOG_INFO("Picture taken !");
+        } break;
+
+        default:
+            break;
+    }
+
 }
 
 void app_ble_central__init(void)
