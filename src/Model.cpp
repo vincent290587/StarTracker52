@@ -15,7 +15,7 @@
 #if defined (BLE_STACK_SUPPORT_REQD)
 #include "app_ble_peripheral.h"
 #include "uln2003.h"
-#include "app_ble_central.h"
+#include "a6x_handler.h"
 
 #endif
 
@@ -56,7 +56,7 @@ void sensors_task(void * p_context) {
     {
         w_task_delay(1000);
 
-        app_ble_central__take_pic(false);
+        a6x_handler__run_sm();
     }
 
 }

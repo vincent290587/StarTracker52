@@ -11,6 +11,7 @@
 #include "ble.h"
 #include "ble_srv_common.h"
 #include "nrf_sdh_ble.h"
+#include "a6x_commands.h"
 
 /**@brief   Macro for defining an instance.
  *
@@ -65,8 +66,8 @@ typedef struct
     uint16_t             conn_handle; /**< Connection handle on which the Heart Rate service was discovered on the peer device..*/
     union
     {
-        a6x_db_t  peer_db;            /**< KOMOOT related handles found on the peer device.. This will be filled if the evt_type is @ref BLE_KOMOOT_C_EVT_DISCOVERY_COMPLETE.*/
-        a6x_rsp_t a6x_data;                /**< KOMOOT measurement received. This will be filled if the evt_type is @ref BLE_KOMOOT_C_EVT_NOTIFICATION. */
+        a6x_db_t  peer_db;            /**< related handles found on the peer device.. This will be filled if the evt_type is @ref BLE_A6X_C_EVT_DISCOVERY_COMPLETE.*/
+        a6x_rsp_t a6x_data;           /**< measurement received. This will be filled if the evt_type is @ref BLE_A6X_C_EVT_NOTIFICATION. */
     } params;
 } ble_a6x_c_evt_t;
 
@@ -82,12 +83,7 @@ typedef struct
     nrf_ble_gq_t            * p_gatt_queue;   /**< Pointer to BLE GATT Queue instance. */
 } ble_a6x_c_init_t;
 
-typedef enum {
-    ble_a6x_app_update_focus_up      = 0x106u,
-    ble_a6x_app_update_focus_down    = 0x107u,
-    ble_a6x_app_update_shutter_up    = 0x108u,
-    ble_a6x_app_update_shutter_down  = 0x109u,
-} ble_a6x_app_update_t;
+typedef a6x_app_commands_t ble_a6x_app_update_t;
 
 /**@brief Service structure. This structure contains various status information for the service. */
 struct ble_a6x_srv_s

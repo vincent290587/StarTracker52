@@ -19,6 +19,7 @@
 #include "ble_a6x.h"
 
 #include "segger_wrapper.h"
+#include "a6x_handler.h"
 
 BLE_A6X_C_DEF(m_ble_a6x_c);
 BLE_DB_DISCOVERY_ARRAY_DEF(m_db_disc, NRF_SDH_BLE_CENTRAL_LINK_COUNT);  /**< Database discovery module instances. */
@@ -255,9 +256,6 @@ static void _service_c_error_handler(uint32_t nrf_error)
     APP_ERROR_HANDLER(nrf_error);
 }
 
-static volatile bool m_focus_acquired = false;
-static volatile bool m_shutter_triggered = false;
-
 static void _a6x_c_evt_handler(ble_a6x_srv_t * p_ble_a6x_c, ble_a6x_c_evt_t * p_evt) {
 
     LOG_INFO("A6X event: 0x%X\r\n", p_evt->evt_type);
@@ -293,37 +291,7 @@ static void _a6x_c_evt_handler(ble_a6x_srv_t * p_ble_a6x_c, ble_a6x_c_evt_t * p_
 
         case BLE_A6X_C_EVT_DATA: {
             if (p_evt->params.a6x_data.first == 0x02) {
-                switch (p_evt->params.a6x_data.second) {
-                    case 0x3F: {
-                        uint8_t _focusStatus = p_evt->params.a6x_data.third;
-
-                        if (_focusStatus == 0x20) {
-                            m_focus_acquired = true;
-//                            rs->set(Status::FOCUS_ACQUIRED);
-                        } else {
-                            m_focus_acquired = false;
-//                            rs->set(Status::READY);
-                        }
-
-                    } break;
-
-                    case 0xA0: {
-                        uint8_t _shutterStatus = p_evt->params.a6x_data.third;
-
-                        if (_shutterStatus == 0x20) {
-//                            rs->set(Status::SHUTTER);
-                            m_shutter_triggered = true;
-                        } else {
-//                            rs->set(Status::READY);
-                            m_shutter_triggered = false;
-                        }
-
-                    } break;
-
-                    case 0xD5:
-                    {   uint8_t _recordingStatus = p_evt->params.a6x_data.third;
-                    } break;
-                }
+                a6x_handler__on_data(p_evt->params.a6x_data.second, p_evt->params.a6x_data.third);
             }
         } break; // BLE_A6X_C_EVT_DATA
 
@@ -331,14 +299,6 @@ static void _a6x_c_evt_handler(ble_a6x_srv_t * p_ble_a6x_c, ble_a6x_c_evt_t * p_
             // No implementation needed.
             break;
     }
-}
-
-static void _a6x_write_handler_t(uint16_t conn_handle, const uint8_t *p_data, uint16_t len) {
-
-    (void)conn_handle;
-
-    NRF_LOG_INFO("A6X char write len=2");
-    NRF_LOG_RAW_HEXDUMP_INFO(p_data, len);
 }
 
 /**@brief Function for handling Queued Write module errors.
@@ -370,98 +330,24 @@ static void a6x_c_init(void)
 
 void app_ble_central__take_pic(bool start) {
 
-    static int _state = 0;
-
+    // TODO remove function and place equivalent in BLE NUS
     // on / off
     if (start) {
-        if (!_state) {
-            _state = 1;
-        }
+        a6x_handler__set_state(eA6X_sm_state_start);
         return; // HAVE TO RETURN HERE
     } else if (!ble_a6x_c_is_connected(&m_ble_a6x_c) || m_conn_handle_a6x_c == BLE_CONN_HANDLE_INVALID) {
-        _state = 0;
+        a6x_handler__set_state(eA6X_sm_state_idle);
     }
 
-    // focus
-    if (m_focus_acquired && _state == 1) {
-        _state = 3;
+}
+
+void app_ble_central__send_a6x_command(ble_a6x_app_update_t command) {
+
+    if (ble_a6x_c_is_connected(&m_ble_a6x_c) && m_conn_handle_a6x_c != BLE_CONN_HANDLE_INVALID) {
+        uint32_t err_code = NRF_SUCCESS;
+        err_code = ble_a6x_c_update(&m_ble_a6x_c, ble_a6x_app_update_focus_up);
+        APP_ERROR_CHECK(err_code);
     }
-    // shutter
-    if (m_shutter_triggered && _state == 3) {
-        _state = 4;
-    }
-
-    uint32_t err_code = NRF_SUCCESS;
-    switch (_state) {
-        case 0u: // nothing
-            break;
-
-        case 1u:
-        {
-            m_focus_acquired = false;
-            m_shutter_triggered = false;
-
-            err_code = ble_a6x_c_update(&m_ble_a6x_c, ble_a6x_app_update_focus_up);
-            APP_ERROR_CHECK(err_code);
-
-            w_task_delay(10);
-
-            err_code = ble_a6x_c_update(&m_ble_a6x_c, ble_a6x_app_update_focus_down);
-            APP_ERROR_CHECK(err_code);
-        } break;
-
-        case 2u:
-        {
-            // TODO remove state
-            err_code = ble_a6x_c_update(&m_ble_a6x_c, ble_a6x_app_update_shutter_up);
-            APP_ERROR_CHECK(err_code);
-
-            _state = 3u;
-        } break;
-
-        case 3u:
-        {
-            if (!m_focus_acquired) {
-                _state = 1u;
-                return;
-            }
-
-            err_code = ble_a6x_c_update(&m_ble_a6x_c, ble_a6x_app_update_shutter_up);
-            APP_ERROR_CHECK(err_code);
-
-            w_task_delay(10);
-
-            err_code = ble_a6x_c_update(&m_ble_a6x_c, ble_a6x_app_update_shutter_down);
-            APP_ERROR_CHECK(err_code);
-
-            w_task_delay(2000); // TODO flexible time
-
-            err_code = ble_a6x_c_update(&m_ble_a6x_c, ble_a6x_app_update_shutter_up);
-            APP_ERROR_CHECK(err_code);
-
-            w_task_delay(10);
-
-            err_code = ble_a6x_c_update(&m_ble_a6x_c, ble_a6x_app_update_shutter_down); // releases shutter : end BULB with that one
-            APP_ERROR_CHECK(err_code);
-
-            w_task_delay(100);
-
-            err_code = ble_a6x_c_update(&m_ble_a6x_c, ble_a6x_app_update_focus_up);
-            APP_ERROR_CHECK(err_code);
-        } break;
-
-        case 4u:
-        {
-            NRF_LOG_INFO("Picture taken !");
-
-            m_focus_acquired = false;
-            m_shutter_triggered = false;
-        } break;
-
-        default:
-            break;
-    }
-
 }
 
 void app_ble_central__init(void)
