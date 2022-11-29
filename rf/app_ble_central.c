@@ -255,8 +255,8 @@ static void _service_c_error_handler(uint32_t nrf_error)
     APP_ERROR_HANDLER(nrf_error);
 }
 
-static bool m_focus_acquired = false;
-static bool m_shutter_triggered = false;
+static volatile bool m_focus_acquired = false;
+static volatile bool m_shutter_triggered = false;
 
 static void _a6x_c_evt_handler(ble_a6x_srv_t * p_ble_a6x_c, ble_a6x_c_evt_t * p_evt) {
 
@@ -384,7 +384,7 @@ void app_ble_central__take_pic(bool start) {
 
     // focus
     if (m_focus_acquired && _state == 1) {
-        _state = 3;
+        _state = 2;
     }
     // shutter
     if (m_shutter_triggered && _state == 3) {
@@ -398,19 +398,27 @@ void app_ble_central__take_pic(bool start) {
 
         case 1u:
         {
-            err_code = ble_a6x_c_update(&m_ble_a6x_c, ble_a6x_app_update_shutter_released);
+            m_focus_acquired = false;
+            m_shutter_triggered = false;
+
+            err_code = ble_a6x_c_update(&m_ble_a6x_c, 0x106);
             APP_ERROR_CHECK(err_code);
 
             w_task_delay(100);
 
-            err_code = ble_a6x_c_update(&m_ble_a6x_c, ble_a6x_app_update_focus_transition);
+            err_code = ble_a6x_c_update(&m_ble_a6x_c, 0x108);
+            APP_ERROR_CHECK(err_code);
+
+            w_task_delay(100);
+
+            err_code = ble_a6x_c_update(&m_ble_a6x_c, 0x107);
             APP_ERROR_CHECK(err_code);
         } break;
 
         case 2u:
         {
-            err_code = ble_a6x_c_update(&m_ble_a6x_c, ble_a6x_app_update_focus_hold);
-            APP_ERROR_CHECK(err_code);
+//            err_code = ble_a6x_c_update(&m_ble_a6x_c, ble_a6x_app_update_focus_hold);
+//            APP_ERROR_CHECK(err_code);
 
             _state = 3u;
         } break;
@@ -421,13 +429,31 @@ void app_ble_central__take_pic(bool start) {
                 _state = 1u;
                 return;
             }
-            err_code = ble_a6x_c_update(&m_ble_a6x_c, ble_a6x_app_update_shutter_pressed);
+            err_code = ble_a6x_c_update(&m_ble_a6x_c, 0x109);
+            APP_ERROR_CHECK(err_code);
+
+            w_task_delay(2000);
+
+            err_code = ble_a6x_c_update(&m_ble_a6x_c, 0x108);
+            APP_ERROR_CHECK(err_code);
+
+            w_task_delay(100);
+
+            err_code = ble_a6x_c_update(&m_ble_a6x_c, 0x109); // releases shutter : end BULB with that one
+            APP_ERROR_CHECK(err_code);
+
+            w_task_delay(100);
+
+            err_code = ble_a6x_c_update(&m_ble_a6x_c, 0x106);
             APP_ERROR_CHECK(err_code);
         } break;
 
         case 4u:
         {
             NRF_LOG_INFO("Picture taken !");
+
+            m_focus_acquired = false;
+            m_shutter_triggered = false;
         } break;
 
         default:
