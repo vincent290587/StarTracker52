@@ -317,8 +317,8 @@ uint32_t ble_a6x_c_update(ble_a6x_srv_t * p_cfg, ble_a6x_app_update_t cmd_update
     write_req.params.gattc_write.len      = sizeof(cmd_value);
     write_req.params.gattc_write.p_value  = cmd_value;
     write_req.params.gattc_write.offset   = 0;
-    write_req.params.gattc_write.write_op = BLE_GATT_OP_WRITE_CMD;
-    write_req.params.gattc_write.flags    = BLE_GATT_EXEC_WRITE_FLAG_PREPARED_WRITE;
+    write_req.params.gattc_write.write_op = BLE_GATT_OP_WRITE_REQ;
+//    write_req.params.gattc_write.flags    = BLE_GATT_EXEC_WRITE_FLAG_PREPARED_WRITE;
 
     err_code = nrf_ble_gq_item_add(p_cfg->p_gatt_queue, &write_req, p_cfg->conn_handle);
     APP_ERROR_CHECK(err_code);
