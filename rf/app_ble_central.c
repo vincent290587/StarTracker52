@@ -320,7 +320,6 @@ static void a6x_c_init(void)
     ble_a6x_c_init_t init_a6x;
 
     init_a6x.p_gatt_queue  = &m_ble_gatt_queue;
-//    init_a6x.write_handler = _a6x_write_handler_t;
     init_a6x.event_handler = _a6x_c_evt_handler;
     init_a6x.error_handler = _service_c_error_handler;
 
@@ -344,8 +343,8 @@ void app_ble_central__take_pic(bool start) {
 void app_ble_central__send_a6x_command(ble_a6x_app_update_t command) {
 
     if (ble_a6x_c_is_connected(&m_ble_a6x_c) && m_conn_handle_a6x_c != BLE_CONN_HANDLE_INVALID) {
-        uint32_t err_code = NRF_SUCCESS;
-        err_code = ble_a6x_c_update(&m_ble_a6x_c, ble_a6x_app_update_focus_up);
+        uint32_t err_code;
+        err_code = ble_a6x_c_update(&m_ble_a6x_c, command);
         APP_ERROR_CHECK(err_code);
     }
 }
