@@ -72,6 +72,12 @@ void a6x_handler__set_state(eA6X_sm_state state) {
     }
 }
 
+/*
+ * All commands send one code for pressing the button down, and another when you release the button with the exception
+ * of the video record button which only sends when you press it down, and operates like a toggle.
+ * A light on the remote stays on when the camera is recording, but I'm not absolutely sure that it actually
+ * is reading that status back out of the camera vs just tracking it's own state.
+ */
 void a6x_handler__run_sm(void) {
 
     // on / off

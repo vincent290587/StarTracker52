@@ -38,7 +38,7 @@ extern U32 SystemCoreClock;
 #define NUM_STEPS 8
 #define RADS_PER_SEC 7.292115e-05f
 
-#define LENGTH_M 0.28884f // fill in with precise measured value
+#define LENGTH_M     (0.28884f) // fill in with precise measured value
 #define ELE_PER_TURN (0.0005f) // fill in with precise measured value: elevation per full thread rotation
 
 // 4096 steps per rotation

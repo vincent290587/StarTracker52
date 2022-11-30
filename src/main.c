@@ -395,7 +395,7 @@ int main(void) {
     task_manager_start_timer();
 
 	(void)task_create(sensors_task		, "sensors_task"		, NULL, 4096);
-	(void)task_create(peripherals_task	, "peripherals_task"	, NULL, 4096);
+	(void)task_create(peripherals_task	, "peripherals_task"	, NULL, 1024);
 
 	// does not return
 	task_manager_start(idle_task, NULL);
