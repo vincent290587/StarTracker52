@@ -42,6 +42,8 @@
 
 #include "segger_wrapper.h"
 #include "app_ble_central.h"
+#include "uln2003.h"
+#include "a6x_handler.h"
 
 #define APP_BLE_CONN_CFG_TAG            1                                       /**< A tag identifying the SoftDevice BLE configuration. */
 
@@ -310,8 +312,35 @@ static void _nus_data_handler(ble_nus_evt_t * p_evt)
 {
     if (p_evt->type == BLE_NUS_EVT_RX_DATA)
     {
-    	// TODO
     	NRF_LOG_DEBUG("BLE_NUS_EVT_RX_DATA %u", p_evt->params.rx_data.length);
+        if (p_evt->params.rx_data.length > 1) {
+            switch (p_evt->params.rx_data.p_data[0]) {
+
+                case 0x00: // cmd resume / stop
+                {
+                    uln2003__pause(p_evt->params.rx_data.p_data[1]);
+                } break;
+
+                case 0x01: // cmd rotate / rewind
+                {
+                    uln2003__direction(p_evt->params.rx_data.p_data[1]);
+                } break;
+
+                case 0x03: // cmd blob
+                {
+                    if (p_evt->params.rx_data.length == 4) {
+                        a6x_handler__set_state(eA6X_sm_state_idle);
+                        uln2003__direction(1);
+                        a6x_handler__program(p_evt->params.rx_data.p_data[1], p_evt->params.rx_data.p_data[2] + (p_evt->params.rx_data.p_data[3] << 8u));
+                        a6x_handler__set_state(eA6X_sm_state_start);
+                    }
+                } break;
+
+                default:
+                    break;
+
+            }
+        }
     }
 
 }
@@ -444,7 +473,7 @@ static void conn_params_init(void)
     cp_init.first_conn_params_update_delay = FIRST_CONN_PARAMS_UPDATE_DELAY;
     cp_init.next_conn_params_update_delay  = NEXT_CONN_PARAMS_UPDATE_DELAY;
     cp_init.max_conn_params_update_count   = MAX_CONN_PARAMS_UPDATE_COUNT;
-    // TODO check cp_init.start_on_notify_cccd_handle    = m_lns.loc_speed_handles.cccd_handle;
+    cp_init.start_on_notify_cccd_handle    = BLE_GATT_HANDLE_INVALID;
     cp_init.disconnect_on_fail             = false;
     cp_init.evt_handler                    = on_conn_params_evt;
     cp_init.error_handler                  = conn_params_error_handler;

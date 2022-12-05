@@ -52,17 +52,26 @@ extern U32 SystemCoreClock;
 
 // from manufacturers datasheet
 static const U8 m_stepper_sequence[NUM_STEPS] = {0x01, 0x03, 0x02, 0x06, 0x04, 0x0C, 0x08, 0x09};
+static const U8 m_stepper_revsequence[NUM_STEPS] = {0x09, 0x08, 0x0C, 0x04, 0x06, 0x02, 0x03, 0x01};
 
 static volatile U32 m_total_steps = 0;
 static volatile U8 m_stepper_index = 0;
 
+static volatile bool directionForward = true;
+
 static inline void _increment(void) {
 
-    nrf_gpio_pin_write(ULN_PINA, m_stepper_sequence[m_stepper_index] & 0b0001);
-    nrf_gpio_pin_write(ULN_PINB, m_stepper_sequence[m_stepper_index] & 0b0010);
-    nrf_gpio_pin_write(ULN_PINC, m_stepper_sequence[m_stepper_index] & 0b0100);
-    nrf_gpio_pin_write(ULN_PIND, m_stepper_sequence[m_stepper_index] & 0b1000);
-
+    if (directionForward) {
+        nrf_gpio_pin_write(ULN_PINA, m_stepper_sequence[m_stepper_index] & 0b0001);
+        nrf_gpio_pin_write(ULN_PINB, m_stepper_sequence[m_stepper_index] & 0b0010);
+        nrf_gpio_pin_write(ULN_PINC, m_stepper_sequence[m_stepper_index] & 0b0100);
+        nrf_gpio_pin_write(ULN_PIND, m_stepper_sequence[m_stepper_index] & 0b1000);
+    } else {
+        nrf_gpio_pin_write(ULN_PINA, m_stepper_revsequence[m_stepper_index] & 0b0001);
+        nrf_gpio_pin_write(ULN_PINB, m_stepper_revsequence[m_stepper_index] & 0b0010);
+        nrf_gpio_pin_write(ULN_PINC, m_stepper_revsequence[m_stepper_index] & 0b0100);
+        nrf_gpio_pin_write(ULN_PIND, m_stepper_revsequence[m_stepper_index] & 0b1000);
+    }
     m_stepper_index = (++m_stepper_index) & 0b0111;
     m_total_steps++;
 
@@ -86,6 +95,8 @@ static void timer_event_handler(nrf_timer_event_t event_type,
 
 //////////////////////////////////////////////////////////////////////////////////////
 
+static const nrf_drv_timer_t TIMER_LED = NRF_DRV_TIMER_INSTANCE(1);
+
 void uln2003__init(void) {
 
     nrf_gpio_cfg_output(ULN_PINA);
@@ -103,8 +114,6 @@ void uln2003__init(void) {
 //    err_code = app_timer_start(m_job_timer, APP_TIMER_TICKS(1000), NULL);
 //    APP_ERROR_CHECK(err_code);
 
-    static const nrf_drv_timer_t TIMER_LED = NRF_DRV_TIMER_INSTANCE(1);
-
     uint32_t time_ticks;
     //Configure TIMER_LED for generating simple light effect - leds on board will invert his state one after the other.
     nrf_drv_timer_config_t timer_cfg = NRF_DRV_TIMER_DEFAULT_CONFIG;
@@ -117,6 +126,8 @@ void uln2003__init(void) {
             &TIMER_LED, NRF_TIMER_CC_CHANNEL0, time_ticks, NRF_TIMER_SHORT_COMPARE0_CLEAR_MASK, true);
 
     nrf_drv_timer_enable(&TIMER_LED);
+
+    nrf_drv_timer_pause(&TIMER_LED);
 #else
     //
     //  The cycle counter must be activated in order
@@ -128,6 +139,27 @@ void uln2003__init(void) {
         }
     }
 #endif
+}
+
+void uln2003__pause(uint8_t resume) {
+
+    if (resume) {
+        nrf_drv_timer_resume(&TIMER_LED);
+    } else {
+        nrf_drv_timer_pause(&TIMER_LED);
+    }
+}
+
+void uln2003__direction(uint8_t forward) {
+
+    nrf_drv_timer_pause(&TIMER_LED);
+
+    if ((directionForward ^ forward) != 0) {
+        m_stepper_index = 0b0111 - m_stepper_index;
+    }
+    directionForward = forward==0 ? false:true;
+
+    nrf_drv_timer_resume(&TIMER_LED);
 }
 
 void uln2003__service(void) {

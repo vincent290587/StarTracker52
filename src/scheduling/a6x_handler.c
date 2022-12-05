@@ -13,12 +13,16 @@
 #include "segger_wrapper.h"
 #include "task_manager_wrapper.h"
 #include "a6x_commands.h"
+#include "uln2003.h"
 
 
 static volatile bool m_focus_acquired = false;
 static volatile bool m_shutter_triggered = false;
 
 static eA6X_sm_state _state = eA6X_sm_state_idle;
+
+static uint8_t  m_picture_nb;
+static uint16_t m_exposure;
 
 void a6x_handler__on_data(uint8_t second, uint8_t third) {
 
@@ -61,14 +65,26 @@ void a6x_handler__on_data(uint8_t second, uint8_t third) {
     }
 }
 
+void a6x_handler__program(uint8_t picture_nb, uint16_t exposure) {
+
+    m_picture_nb = picture_nb;
+    m_exposure = exposure;
+}
+
 void a6x_handler__set_state(eA6X_sm_state state) {
 
     if (_state == eA6X_sm_state_idle && state == eA6X_sm_state_start) {
         _state = eA6X_sm_state_start;
+
+        // start rotation
+        uln2003__pause(1);
     }
 
     if (state == eA6X_sm_state_idle) {
         _state = eA6X_sm_state_idle;
+
+        // start rotation
+        uln2003__pause(0);
     }
 }
 
@@ -87,7 +103,7 @@ void a6x_handler__run_sm(void) {
         _state = eA6X_sm_state_trigger;
     }
     // shutter
-    if (m_shutter_triggered && _state == 3) {
+    if (m_shutter_triggered && _state == eA6X_sm_state_trigger) {
         _state = eA6X_sm_state_done;
     }
 
@@ -128,7 +144,7 @@ void a6x_handler__run_sm(void) {
 
             app_ble_central__send_a6x_command(ble_a6x_app_update_shutter_down);
 
-            w_task_delay(2000); // TODO flexible time
+            w_task_delay(m_exposure);
 
             app_ble_central__send_a6x_command(ble_a6x_app_update_shutter_up);
 
@@ -147,6 +163,16 @@ void a6x_handler__run_sm(void) {
 
             m_focus_acquired = false;
             m_shutter_triggered = false;
+
+            if (m_picture_nb > 1) {
+                m_picture_nb--;
+                _state = eA6X_sm_state_start;
+            } else {
+                m_picture_nb = 0;
+                _state = eA6X_sm_state_idle;
+                // end rotation
+                uln2003__pause(0);
+            };
         } break;
 
         default:

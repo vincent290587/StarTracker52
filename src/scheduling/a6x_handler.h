@@ -13,8 +13,6 @@ typedef enum {
     eA6X_sm_state_focus    = 2u,
     eA6X_sm_state_trigger  = 3u,
     eA6X_sm_state_done     = 4u,
-
-    eA6X_sm_state_stop,
 } eA6X_sm_state;
 
 #ifdef __cplusplus
@@ -22,6 +20,8 @@ extern "C" {
 #endif
 
 void a6x_handler__set_state(eA6X_sm_state state);
+
+void a6x_handler__program(uint8_t picture_nb, uint16_t exposure);
 
 void a6x_handler__on_data(uint8_t second, uint8_t third);
 
