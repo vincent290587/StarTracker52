@@ -55,9 +55,11 @@ void sensors_task(void * p_context) {
 
     for(;;)
     {
-        w_task_delay(1000);
+        w_task_delay(100);
 
         a6x_handler__run_sm();
+
+        uln2003__service();
 
         if (app_ble_central__is_connected() || app_ble_peripheral__is_connected()) {
             power_scheduler__ping(ePowerSchedulerPingBLE);
@@ -89,8 +91,6 @@ void idle_task(void * p_context)
 #if APP_SCHEDULER_ENABLED
     	app_sched_execute();
 #endif
-
-        uln2003__service();
 
     	task_yield();
     }

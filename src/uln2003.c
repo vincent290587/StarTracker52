@@ -38,8 +38,8 @@ extern U32 SystemCoreClock;
 #define NUM_STEPS 8
 #define RADS_PER_SEC 7.292115e-05f
 
-#define LENGTH_M     (0.28884f) // fill in with precise measured value
-#define ELE_PER_TURN (0.0005f) // fill in with precise measured value: elevation per full thread rotation
+#define LENGTH_M     (0.364f) // fill in with precise measured value
+#define ELE_PER_TURN (0.0008f) // M5 (fill in with precise measured value: elevation per full thread rotation)
 
 // 4096 steps per rotation
 // 0.5mm per rotation,
@@ -58,6 +58,7 @@ static volatile U32 m_total_steps = 0;
 static volatile U8 m_stepper_index = 0;
 
 static volatile bool directionForward = true;
+static volatile bool isStarted = false;
 
 static inline void _increment(void) {
 
@@ -144,22 +145,19 @@ void uln2003__init(void) {
 void uln2003__pause(uint8_t resume) {
 
     if (resume) {
-        nrf_drv_timer_resume(&TIMER_LED);
+        isStarted = true;
     } else {
-        nrf_drv_timer_pause(&TIMER_LED);
+        isStarted = false;
     }
 }
 
 void uln2003__direction(uint8_t forward) {
-
-    nrf_drv_timer_pause(&TIMER_LED);
 
     if ((directionForward ^ forward) != 0) {
         m_stepper_index = 0b0111 - m_stepper_index;
     }
     directionForward = forward==0 ? false:true;
 
-    nrf_drv_timer_resume(&TIMER_LED);
 }
 
 void uln2003__service(void) {
@@ -190,5 +188,43 @@ void uln2003__service(void) {
         _increment();
     }
 #endif
+
+#define NB_ACC_STEPS 30u
+
+    static bool wasStarted = false;
+    static unsigned int _accIndex = 0;
+
+    if (!wasStarted && isStarted) {
+        // go to start
+        _accIndex = 1;
+        nrf_drv_timer_resume(&TIMER_LED);
+    }
+
+    if (isStarted) {
+        if (_accIndex < NB_ACC_STEPS) {
+
+            //nrf_drv_timer_pause(&TIMER_LED);
+            nrf_drv_timer_disable(&TIMER_LED);
+
+            uint32_t time_ticks = nrf_drv_timer_us_to_ticks(&TIMER_LED, NB_ACC_STEPS * USEC_PER_PULSE / _accIndex);
+            nrf_drv_timer_extended_compare(
+                        &TIMER_LED,
+                        NRF_TIMER_CC_CHANNEL0,
+                        time_ticks,
+                        NRF_TIMER_SHORT_COMPARE0_CLEAR_MASK,
+                        true);
+
+            //nrf_drv_timer_resume(&TIMER_LED);
+            nrf_drv_timer_enable(&TIMER_LED);
+
+            _accIndex++;
+        }
+    }
+
+    if (wasStarted && !isStarted) {
+        nrf_drv_timer_pause(&TIMER_LED);
+    }
+
+    wasStarted = isStarted;
 
 }
