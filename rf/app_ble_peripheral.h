@@ -16,12 +16,7 @@ extern "C" {
 
 void ble_init(void);
 
-uint16_t ble_get_mtu(void);
-
-void app_ble_advertising_start(void);
-
-uint32_t app_ble_nus_data_send(uint8_t *p_data, uint16_t length);
-
+bool app_ble_peripheral__is_connected();
 
 #ifdef __cplusplus
 }

@@ -16,6 +16,7 @@
 #include "app_ble_peripheral.h"
 #include "uln2003.h"
 #include "a6x_handler.h"
+#include "app_ble_central.h"
 
 #endif
 
@@ -57,6 +58,10 @@ void sensors_task(void * p_context) {
         w_task_delay(1000);
 
         a6x_handler__run_sm();
+
+        if (app_ble_central__is_connected() || app_ble_peripheral__is_connected()) {
+            power_scheduler__ping(ePowerSchedulerPingBLE);
+        }
     }
 
 }

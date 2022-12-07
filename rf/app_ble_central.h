@@ -19,6 +19,10 @@ void app_ble_central__take_pic(bool start);
 
 void app_ble_central__send_a6x_command(a6x_app_commands_t command);
 
+void app_ble_central__start_scan(void);
+
+bool app_ble_central__is_connected(void);
+
 #ifdef __cplusplus
 }
 #endif

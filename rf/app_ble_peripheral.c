@@ -524,7 +524,7 @@ static void _on_ble_peripheral_evt(ble_evt_t const * p_ble_evt, void * p_context
         	if(p_gap_evt->params.connected.role != BLE_GAP_ROLE_CENTRAL) {
         		NRF_LOG_INFO("PR Connected");
 
-        	    battery_level_update();
+                app_ble_central__start_scan();
 
         		m_conn_handle = p_ble_evt->evt.gap_evt.conn_handle;
                 multi_qwr_conn_handle_assign(m_conn_handle);
@@ -730,6 +730,7 @@ static void advertising_init(void)
     memset(&init, 0, sizeof(init));
     memset(&manuf_data, 0, sizeof(manuf_data));
 
+#if 0
     static ble_uuid_t m_adv_uuids[1];
 
     m_adv_uuids[0].uuid = BLE_UUID_NUS_SERVICE;
@@ -737,6 +738,7 @@ static void advertising_init(void)
 
     init.srdata.uuids_complete.uuid_cnt = sizeof(m_adv_uuids) / sizeof(m_adv_uuids[0]);
     init.srdata.uuids_complete.p_uuids  = m_adv_uuids;
+#endif
 
     init.advdata.name_type          = BLE_ADVDATA_FULL_NAME;
     init.advdata.include_appearance = true;
@@ -843,6 +845,10 @@ void ble_init(void)
 	ble_stack_init();
 
     app_ble_peripheral_init();
+}
+
+bool app_ble_peripheral__is_connected() {
+    return m_conn_handle != BLE_CONN_HANDLE_INVALID;
 }
 
 uint16_t ble_get_mtu(void) {

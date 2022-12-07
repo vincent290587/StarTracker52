@@ -283,8 +283,6 @@ static void _a6x_c_evt_handler(ble_a6x_srv_t * p_ble_a6x_c, ble_a6x_c_evt_t * p_
                 // Enable notifications.
                 err_code = ble_a6x_c_notif_enable(p_ble_a6x_c);
                 APP_ERROR_CHECK(err_code);
-
-                app_ble_central__take_pic(true);
             }
         }
             break; // BLE_RSCS_C_EVT_DISCOVERY_COMPLETE:
@@ -349,10 +347,22 @@ void app_ble_central__send_a6x_command(ble_a6x_app_update_t command) {
     }
 }
 
+bool app_ble_central__is_connected(void) {
+    return ble_a6x_c_is_connected(&m_ble_a6x_c) && m_conn_handle_a6x_c != BLE_CONN_HANDLE_INVALID;
+}
+
 void app_ble_central__init(void)
 {
     db_discovery_init();
     a6x_c_init();
     scan_init();
+    //scan_start();
+}
+
+void app_ble_central__start_scan(void)
+{
+    static bool _scanStarted = false;
+    if (_scanStarted) return;
     scan_start();
+    _scanStarted =  true;
 }
