@@ -312,7 +312,8 @@ static void _nus_data_handler(ble_nus_evt_t * p_evt)
 {
     if (p_evt->type == BLE_NUS_EVT_RX_DATA)
     {
-    	NRF_LOG_DEBUG("BLE_NUS_EVT_RX_DATA %u", p_evt->params.rx_data.length);
+        NRF_LOG_INFO("BLE_NUS_EVT_RX_DATA %u", p_evt->params.rx_data.length);
+        NRF_LOG_RAW_HEXDUMP_INFO(p_evt->params.rx_data.p_data, p_evt->params.rx_data.length);
         if (p_evt->params.rx_data.length > 1) {
             switch (p_evt->params.rx_data.p_data[0]) {
 

@@ -43,6 +43,7 @@
 
 #include "nrf_pwr_mgmt.h"
 #include "app_ble_central.h"
+#include "uln2003.h"
 
 #ifdef __cplusplus
 }
@@ -265,6 +266,11 @@ void _bsp_event_callback(bsp_event_t evt) {
     switch (evt) {
 
         case BSP_EVENT_KEY_0:
+        {
+            static uint8_t resume = 0x01u;
+            uln2003__pause(resume);
+            resume = !resume;
+        }
             break;
 
         default:
