@@ -14,7 +14,7 @@
 
 
 #define POWER_SCHEDULER_MAX_IDLE_MIN               10
-
+#define MILLIS_IN_MINUTE                           60000u
 
 static uint32_t m_last_ping = 0;
 
@@ -22,9 +22,8 @@ static uint32_t m_last_ping = 0;
 void power_scheduler__run(void) {
 
 
-	if (millis() - m_last_ping > (600000 * POWER_SCHEDULER_MAX_IDLE_MIN)) {
+	if (millis() - m_last_ping > (MILLIS_IN_MINUTE * POWER_SCHEDULER_MAX_IDLE_MIN)) {
 
-		//nrf_pwr_mgmt_shutdown(NRF_PWR_MGMT_SHUTDOWN_STAY_IN_SYSOFF);
 		power_scheduler__shutdown();
 	}
 
@@ -48,7 +47,7 @@ void power_scheduler__ping(ePowerSchedulerPing ping_type) {
 
 	switch (ping_type) {
 
-	case ePowerSchedulerPingANT:
+	case ePowerSchedulerPingULN:
 	{
 		m_last_ping = millis();
 	} break;

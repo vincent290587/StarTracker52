@@ -12,6 +12,7 @@
 #include "task_manager_wrapper.h"
 #include "custom_board.h"
 #include "millis.h"
+#include "power_scheduler.h"
 
 #define USE_TIMER 1
 
@@ -219,6 +220,9 @@ void uln2003__service(void) {
 
             _accIndex++;
         }
+
+        // ping power scheduler
+        power_scheduler__ping(ePowerSchedulerPingULN);
     }
 
     if (wasStarted && !isStarted) {

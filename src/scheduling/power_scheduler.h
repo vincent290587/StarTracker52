@@ -10,7 +10,7 @@
 
 
 typedef enum {
-    ePowerSchedulerPingANT,
+    ePowerSchedulerPingULN,
     ePowerSchedulerPingBLE,
 } ePowerSchedulerPing;
 
