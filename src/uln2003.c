@@ -34,21 +34,21 @@ extern U32 SystemCoreClock;
 
 //////////////////////////////////////////////////////////////////////////////////////
 
-#define M_PI 3.1415926f
-#define NUM_STEPS 8
+#define NUM_STEPS 8u
+#define PULSE_PER_TURN 4096u
 #define RADS_PER_SEC 7.292115e-05f
 
 #define LENGTH_M     (0.364f) // fill in with precise measured value
-#define ELE_PER_TURN (0.0008f) // M5 (fill in with precise measured value: elevation per full thread rotation)
+#define ELE_PER_TURN (25.f*0.0008f/30.f) // gears + M5 (fill in with precise measured value: elevation per full thread rotation)
 
 // 4096 steps per rotation
 // 0.5mm per rotation,
-// radians per motor rotation = 0.5mm / (2*Pi*r) = 2.6523e-4
-#define RADIANS_PER_ROT (ELE_PER_TURN / (2*M_PI*LENGTH_M))
+// radians per motor rotation = 0.5mm / r = 2.6523e-4
+#define RADIANS_PER_ROT (ELE_PER_TURN / LENGTH_M)
 
-#define PULSE_PER_SEC   (4096u * RADS_PER_SEC / RADIANS_PER_ROT) /* About 1125 pulse per second */
-#define USEC_PER_PULSE  (1000000uL * RADIANS_PER_ROT / (RADS_PER_SEC * 4096u)) /* pulse period in usec */
-#define CNT_PER_PULSE   (64000000uL * RADIANS_PER_ROT / (RADS_PER_SEC * 4096u)) /* pulse period in counts */
+#define PULSE_PER_SEC   (PULSE_PER_TURN * RADS_PER_SEC / RADIANS_PER_ROT) /* About 1125 pulse per second */
+#define USEC_PER_PULSE  (1000000uL * RADIANS_PER_ROT / (RADS_PER_SEC * PULSE_PER_TURN)) /* pulse period in usec */
+#define CNT_PER_PULSE   (64000000uL * RADIANS_PER_ROT / (RADS_PER_SEC * PULSE_PER_TURN)) /* pulse period in counts */
 
 // from manufacturers datasheet
 static const U8 m_stepper_sequence[NUM_STEPS] = {0x01, 0x03, 0x02, 0x06, 0x04, 0x0C, 0x08, 0x09};
@@ -189,7 +189,7 @@ void uln2003__service(void) {
     }
 #endif
 
-#define NB_ACC_STEPS 30u
+#define NB_ACC_STEPS 10u
 
     static bool wasStarted = false;
     static unsigned int _accIndex = 0;
@@ -223,6 +223,11 @@ void uln2003__service(void) {
 
     if (wasStarted && !isStarted) {
         nrf_drv_timer_pause(&TIMER_LED);
+
+        nrf_gpio_pin_write(ULN_PINA, 0);
+        nrf_gpio_pin_write(ULN_PINB, 0);
+        nrf_gpio_pin_write(ULN_PINC, 0);
+        nrf_gpio_pin_write(ULN_PIND, 0);
     }
 
     wasStarted = isStarted;
