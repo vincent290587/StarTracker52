@@ -40,7 +40,7 @@ extern U32 SystemCoreClock;
 #define RADS_PER_SEC 7.292115e-05f
 
 #define LENGTH_M     (0.364f) // fill in with precise measured value
-#define ELE_PER_TURN (25.f*0.0008f/30.f) // gears + M5 (fill in with precise measured value: elevation per full thread rotation)
+#define ELE_PER_TURN (1.025f*12.f*0.0008f/30.f) // correction + gears + M5 (fill in with precise measured value: elevation per full thread rotation)
 
 // 4096 steps per rotation
 // 0.5mm per rotation,
@@ -190,7 +190,7 @@ void uln2003__service(void) {
     }
 #endif
 
-#define NB_ACC_STEPS 10u
+#define NB_ACC_STEPS 15u
 
     static bool wasStarted = false;
     static unsigned int _accIndex = 0;
