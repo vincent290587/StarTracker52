@@ -20,8 +20,6 @@ else()
     add_definitions(-DNRF_LOG_DEFERRED=0)
 #    add_definitions(-DNRFX_WDT_ENABLED=0)
     add_definitions(-DDEBUG -DDEBUG_NRF -DDEBUG_NRF_USER)
-    add_definitions(-DTASK_MANAGER_CONFIG_STACK_GUARD=0)
-    add_definitions(-DTASK_MANAGER_CONFIG_STACK_SIZE=64)
 endif()
 
 if (USE_SOFTDEVICE)
@@ -40,6 +38,8 @@ endif(USE_SOFTDEVICE)
 add_definitions(-DBOARD_CUSTOM)
 add_definitions(-DPRESS_API_VER=1)
 
+add_definitions(-DTASK_MANAGER_CONFIG_STACK_GUARD=0)
+add_definitions(-DTASK_MANAGER_CONFIG_STACK_SIZE=64)
 add_definitions(-DPNP_ID_PRODUCT_VERSION=${APP_VERSION})
 #add_definitions(-DANT_LICENSE_KEY="3831-521d-7df9-24d8-eff3-467b-225f-a00e")
 #add_definitions(-DUSE_SVIEW=1 -DUSE_RTT=0) # we need NRF_LOG_ENABLED=0
