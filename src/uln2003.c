@@ -202,7 +202,7 @@ void uln2003__service(void) {
     }
 
     if (isStarted) {
-        if (_accIndex < NB_ACC_STEPS) {
+        if (_accIndex <= NB_ACC_STEPS) {
 
             //nrf_drv_timer_pause(&TIMER_LED);
             nrf_drv_timer_disable(&TIMER_LED);
